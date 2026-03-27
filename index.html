@@ -821,7 +821,7 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
       <input class="input" id="gen-search" placeholder="코드, 모델명, 제품설명 검색..." style="max-width:400px;margin-bottom:12px" oninput="renderGenProducts()">
       <div class="table-scroll" style="max-height:500px;overflow-y:auto">
         <table class="data-table" id="gen-table">
-          <thead><tr><th class="center" style="width:40px"></th><th>코드</th><th>관리코드</th><th>대분류</th><th>모델 및 규격</th><th>제품설명 및 품명</th><th class="num">원가</th><th class="num">판매가</th><th class="num">스토어팜</th><th class="num">오픈마켓</th><th>비고</th></tr></thead>
+          <thead><tr><th class="center" style="width:40px"></th><th>코드</th><th>관리코드</th><th>대분류</th><th>모델 및 규격</th><th>제품설명 및 품명</th><th class="num">원가</th><th class="num">판매가</th><th class="num">스토어팜</th><th class="num">오픈마켓</th><th>비고</th><th style="min-width:120px">입고날짜</th></tr></thead>
           <tbody id="gen-body"></tbody>
         </table>
       </div>
@@ -852,6 +852,7 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
             <th>매입원가</th>
             <th>마진금액/마진율</th>
             <th>비고</th>
+            <th style="min-width:120px">입고날짜</th>
           </tr></thead>
           <tbody id="est-search-body"></tbody>
         </table>
@@ -5239,10 +5240,11 @@ function renderGenProducts() {
       <td class="num">${fmt(p.priceNaver || 0)}</td>
       <td class="num">${fmt(p.priceOpen || 0)}</td>
       <td>${p.memo || '-'}</td>
+      <td style="text-align:left;font-size:12px;cursor:pointer;white-space:nowrap;padding-left:8px" onclick="editGenInDate(${idx})">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
     </tr>`;
   }).join('');
   if (!filtered.length) {
-    body.innerHTML = '<tr><td colspan="11"><div class="empty-state"><p>일반제품이 없습니다</p><p style="font-size:12px;color:#9BA3B2">양식을 다운로드하여 업로드하거나, + 제품 추가를 이용하세요</p></div></td></tr>';
+    body.innerHTML = '<tr><td colspan="12"><div class="empty-state"><p>일반제품이 없습니다</p><p style="font-size:12px;color:#9BA3B2">양식을 다운로드하여 업로드하거나, + 제품 추가를 이용하세요</p></div></td></tr>';
   }
   document.getElementById('gen-count').textContent = `${genProducts.length}건`;
   initColumnResize('gen-table');
@@ -5273,12 +5275,23 @@ function removeGenProduct(idx) {
   renderGenProducts();
 }
 
+function editGenInDate(idx) {
+  const p = genProducts[idx];
+  const current = p.inDate || '';
+  const val = prompt('입고날짜 메모 (삭제하려면 비워두세요):', current);
+  if (val === null) return;
+  genProducts[idx].inDate = val.trim();
+  localStorage.setItem('mw_gen_products', JSON.stringify(genProducts));
+  renderGenProducts();
+  toast(val.trim() ? '입고날짜 메모 저장' : '입고날짜 메모 삭제');
+}
+
 function downloadGenTemplate() {
   if (!window.XLSX) { toast('SheetJS 로딩 중...'); return; }
-  const data = [['코드', '관리코드', '대분류', '모델 및 규격', '제품설명 및 품명', '원가', '판매가', '스토어팜', '오픈마켓', '비고']];
-  data.push(['SAMPLE-001', '8801234567890', '전동공구', '샘플 제품', '샘플 설명', 90000, 95000, 97000, 105000, '']);
+  const data = [['코드', '관리코드', '대분류', '모델 및 규격', '제품설명 및 품명', '원가', '판매가', '스토어팜', '오픈마켓', '비고', '입고날짜']];
+  data.push(['SAMPLE-001', '8801234567890', '전동공구', '샘플 제품', '샘플 설명', 90000, 95000, 97000, 105000, '', '']);
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [{wch:12},{wch:16},{wch:12},{wch:25},{wch:40},{wch:12},{wch:12},{wch:12},{wch:12},{wch:20}];
+  ws['!cols'] = [{wch:12},{wch:16},{wch:12},{wch:25},{wch:40},{wch:12},{wch:12},{wch:12},{wch:12},{wch:20},{wch:15}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '일반제품');
   XLSX.writeFile(wb, '일반제품_양식.xlsx');
@@ -5310,6 +5323,7 @@ function uploadGenProducts(input) {
           priceNaver: parseInt(r[7]) || 0,
           priceOpen: parseInt(r[8]) || 0,
           memo: String(r[9] || ''),
+          inDate: String(r[10] || ''),
           source: 'general'
         });
         count++;
@@ -5384,6 +5398,7 @@ function searchEstProducts(val) {
       <td class="num" style="color:#1D9E75">${cost ? fmt(cost) : '-'}</td>
       <td class="num" style="font-size:11px">${marginDisplay}</td>
       <td class="center">-</td>
+      <td style="text-align:left;font-size:12px;white-space:nowrap;padding-left:8px">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
     </tr>`;
   }).join('');
 }
