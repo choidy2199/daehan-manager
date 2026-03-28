@@ -2461,20 +2461,13 @@ function closeModal() { document.getElementById('import-modal').classList.remove
 // ======================== SETTINGS ========================
 function showSettingsModal() {
   const s = DB.settings;
-  // 섹션1: 밀워키 리베이트
   document.getElementById('set-quarter').value = ((s.quarterDC || 0.04) * 100).toFixed(1);
   document.getElementById('set-year').value = ((s.yearDC || 0.018) * 100).toFixed(1);
-  // 섹션2: 채널별 마크업 + 부가세
-  document.getElementById('set-mk-domae').value = (s.mkDomae || 1);
-  document.getElementById('set-mk-retail').value = (s.mkRetail || 15);
-  document.getElementById('set-mk-naver').value = (s.mkNaver || 17);
-  document.getElementById('set-mk-open').value = (s.mkOpen || 27);
-  document.getElementById('set-vat').value = ((s.vat || 0.1) * 100).toFixed(1);
-  // 섹션4: 온라인 판매채널 수수료
-  document.getElementById('set-naver').value = ((s.naverFee || 0.059) * 100).toFixed(1);
-  document.getElementById('set-open-elec').value = ((s.openElecFee || 0.13) * 100).toFixed(1);
-  document.getElementById('set-open-hand').value = ((s.openHandFee || 0.176) * 100).toFixed(1);
-  document.getElementById('set-domae').value = ((s.domaeFee || 0.01) * 100).toFixed(1);
+  document.getElementById('set-mk-domae').value = s.mkDomae || 1;
+  document.getElementById('set-mk-retail').value = s.mkRetail || 15;
+  document.getElementById('set-mk-naver').value = s.mkNaver || 1;
+  document.getElementById('set-mk-open-elec').value = s.mkOpenElec || 0.5;
+  document.getElementById('set-mk-open-hand').value = s.mkOpenHand || 0.5;
   document.getElementById('settings-modal').classList.add('show');
 }
 function closeSettingsModal() { document.getElementById('settings-modal').classList.remove('show'); }
@@ -2543,22 +2536,15 @@ function calcOrderCost(price, productDC) {
 }
 
 function applySettings() {
-  // NaN만 기본값 폴백 (0은 유효한 값)
   function pv(id, def) { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? def : v; }
-  // 섹션1: 밀워키 리베이트 (입력: %, 저장: 소수)
   DB.settings.quarterDC = pv('set-quarter', 4) / 100;
   DB.settings.yearDC = pv('set-year', 1.8) / 100;
-  // 섹션2: 채널별 마크업 + 부가세 (마크업: 저장값=%, 부가세: 입력% → 저장소수)
   DB.settings.mkDomae = pv('set-mk-domae', 1);
   DB.settings.mkRetail = pv('set-mk-retail', 15);
-  DB.settings.mkNaver = pv('set-mk-naver', 17);
-  DB.settings.mkOpen = pv('set-mk-open', 27);
-  DB.settings.vat = pv('set-vat', 10) / 100;
-  // 섹션4: 온라인 판매채널 수수료 (입력: %, 저장: 소수)
-  DB.settings.naverFee = pv('set-naver', 5.9) / 100;
-  DB.settings.openElecFee = pv('set-open-elec', 13) / 100;
-  DB.settings.openHandFee = pv('set-open-hand', 17.6) / 100;
-  DB.settings.domaeFee = pv('set-domae', 1) / 100;
+  DB.settings.mkNaver = pv('set-mk-naver', 1);
+  DB.settings.mkOpenElec = pv('set-mk-open-elec', 0.5);
+  DB.settings.mkOpenHand = pv('set-mk-open-hand', 0.5);
+  DB.settings.vat = 0.1;
   save(KEYS.settings, DB.settings);
   recalcAll();
   closeSettingsModal();
@@ -2566,48 +2552,47 @@ function applySettings() {
 }
 
 function recalcAll() {
-  const s = DB.settings;
-  // AR차감 합산율 (분기 + 년간)
-  const arRates = [s.quarterDC, s.yearDC];
-  // 물량지원 합산율 (제품DC는 제품별이므로 여기서는 0)
-  let volRateSum = 0;
+  var s = DB.settings;
+  var naverFee = s.naverFee || 0.0663;
+  var openElecFee = s.openElecFee || 0.13;
+  var openHandFee = s.openHandFee || 0.176;
 
-  DB.products.forEach(p => {
+  DB.products.forEach(function(p) {
     if (!p.supplyPrice) return;
-    const sp = p.supplyPrice;
-    // Step 2: AR차감총액 = 공급가 × (분기% + 년간% + AR커머셜1% + AR커머셜2% + ...)
-    let arTotal = 0;
-    arRates.forEach(r => { arTotal += sp * r; });
-    // Step 3: 물량지원총률 = 물량지원커머셜% + 제품DC%
-    const productDCpct = (p.productDC || 0) * 100; // productDC는 소수(0.07=7%)로 저장되어 있음
-    const totalVolPct = volRateSum + productDCpct;
-    // Step 4: 최종 매입원가
-    const arApplied = sp - arTotal;
-    const qtyRatio = 1 + (totalVolPct / 100);
-    const cost = arApplied / qtyRatio;
+    var cost = calcCost(p.supplyPrice, p.productDC || 0);
     p.cost = Math.round(cost);
 
-    // 채널별 판매가 = ROUNDUP(원가 × (1 + 마크업%), -2)
-    p.priceA = Math.ceil((cost * (1 + s.mkDomae / 100)) / 100) * 100;
-    p.priceRetail = Math.ceil((cost * (1 + s.mkRetail / 100)) / 100) * 100;
-    p.priceNaver = Math.ceil((cost * (1 + s.mkNaver / 100)) / 100) * 100;
-    p.priceOpen = Math.ceil((cost * (1 + s.mkOpen / 100)) / 100) * 100;
+    // 도매: 단순 마크업, 백원 반올림
+    p.priceA = Math.ceil(cost * (1 + (s.mkDomae || 1) / 100) / 100) * 100;
+
+    // 소매: 단순 마크업, 천원 반올림
+    p.priceRetail = Math.ceil(cost * (1 + (s.mkRetail || 15) / 100) / 1000) * 1000;
+
+    // 스토어팜: 수수료+VAT 역산, 백원 반올림
+    var naverDenom = 10/11 - naverFee - (s.mkNaver || 1) / 100;
+    p.priceNaver = naverDenom > 0 ? Math.ceil(cost / naverDenom / 100) * 100 : 0;
+
+    // 오픈마켓: 대분류 기준 수수료 적용
+    var isElec = (p.category === '파워툴');
+    var openFee = isElec ? openElecFee : openHandFee;
+    var openRate = isElec ? (s.mkOpenElec || 0.5) : (s.mkOpenHand || 0.5);
+    var openDenom = 10/11 - openFee - openRate / 100;
+    p.priceOpen = openDenom > 0 ? Math.ceil(cost / openDenom / 100) * 100 : 0;
   });
 
-  // 프로모션 원가 재계산 — 동일 설정값(리베이트+커머셜) 적용
-  DB.promotions.forEach(pr => {
+  // 프로모션 원가 재계산
+  DB.promotions.forEach(function(pr) {
     if (pr.promoPrice > 0) {
-      // 해당 제품의 제품DC를 찾아서 적용
-      const prod = pr.code ? findProduct(pr.code) : null;
-      const pdc = prod ? (prod.productDC || 0) : 0;
+      var prod = pr.code ? findProduct(pr.code) : null;
+      var pdc = prod ? (prod.productDC || 0) : 0;
       pr.cost = Math.round(calcCost(pr.promoPrice, pdc));
     }
   });
 
   save(KEYS.products, DB.products);
   save(KEYS.promotions, DB.promotions);
-
-  // Update all visible UI
+  save(KEYS.inventory, DB.inventory);
+  populateCatalogFilters();
   renderCatalog();
 }
 
