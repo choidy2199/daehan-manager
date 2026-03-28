@@ -1522,7 +1522,10 @@ function renderPoOrder() {
     var code = item.code || findCodeByModel(item.model, item.ttiNum);
     var isCumul = item.promoName && item.promoName.indexOf('누적') >= 0;
     var isConf = item.confirmed && !isCumul;
-    var orderTotal = (item.orderQty || 0) * (item.promoPrice || 0);
+    var prod = item.code ? findProduct(item.code) : null;
+    var pdc = prod ? (prod.productDC || 0) : 0;
+    var unitCost = item.promoPrice ? Math.round(calcOrderCost(item.promoPrice, pdc)) : 0;
+    var orderTotal = (item.orderQty || 0) * (unitCost || 0);
     var memoHtml = '';
     if (isConf) {
       memoHtml = '<span style="background:#E1F5EE;color:#085041;font-weight:600;padding:2px 6px;border-radius:3px;font-size:9px">발주완료</span>';
@@ -1550,12 +1553,13 @@ function renderPoOrder() {
       '<td class="center">' + memoHtml + '</td>' +
       '<td class="num" style="' + cs + '">' + (item.basePrice ? fmt(item.basePrice) : '-') + '</td>' +
       '<td class="num" style="color:#CC2222;font-weight:600;' + (isConf ? 'opacity:0.5' : '') + '">' + (item.promoPrice ? fmt(item.promoPrice) : '-') + '</td>' +
+      '<td class="num" style="color:' + (isConf ? '#9BA3B2' : '#1D9E75') + ';font-weight:600">' + (unitCost ? fmt(unitCost) : '-') + '</td>' +
       '<td class="num" style="font-weight:600;color:#185FA5;' + (isConf ? 'opacity:0.5' : '') + '">' + (orderTotal > 0 ? fmt(orderTotal) : '-') + '</td>' +
       '<td class="center" style="font-size:11px;' + cs + '">' + (item.promoName || '-') + '</td>' +
       '</tr>';
   }).join('');
   if (!poOrderData.length) {
-    body.innerHTML = '<tr><td colspan="15"><div class="empty-state"><p>프로모션 발주 항목이 없습니다</p><p style="font-size:12px;color:#9BA3B2">엑셀 업로드 또는 + 추가로 등록하세요</p></div></td></tr>';
+    body.innerHTML = '<tr><td colspan="16"><div class="empty-state"><p>프로모션 발주 항목이 없습니다</p><p style="font-size:12px;color:#9BA3B2">엑셀 업로드 또는 + 추가로 등록하세요</p></div></td></tr>';
   }
   document.getElementById('po-order-count').textContent = poOrderData.length + '건';
   initColumnResize('order-po-table');
