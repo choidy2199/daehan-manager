@@ -2856,7 +2856,7 @@ function importExcel() {
         for (let i = dataStart; i < data.length; i++) {
           const row = data[i];
           const code = row && row[col.코드 ?? 2];
-          if (!code) continue;
+          if (!code && !(row[col.모델명 ?? 8])) continue;
 
           const supplyPrice = row[col.공급가 ?? 10] || 0;
           const productDC = is26 ? (row[col.제품DC ?? 13] || 0) : (row[col.제품DC ?? 11] || 0);
@@ -2865,7 +2865,7 @@ function importExcel() {
 
           var newItem = {
             discontinued: (String(row[col.단종 ?? 1] || '').trim() === '단종') ? '단종' : '',
-            code: String(code),
+            code: String(code || ''),
             manageCode: col.관리코드 != null ? String(row[col.관리코드] || '') : '',
             category: row[col.대분류 ?? 3] || '',
             subcategory: row[col.중분류 ?? 4] || '',
@@ -2885,7 +2885,7 @@ function importExcel() {
           };
 
           if (importMode === 'merge') {
-            var existIdx = DB.products.findIndex(function(p) { return String(p.code) === String(code); });
+            var existIdx = code ? DB.products.findIndex(function(p) { return String(p.code) === String(code); }) : -1;
             if (existIdx >= 0) {
               var exist = DB.products[existIdx];
               if (exist.orderNum && newItem.orderNum && String(exist.orderNum) !== String(newItem.orderNum)) {
@@ -2910,7 +2910,7 @@ function importExcel() {
             addedCount++;
           }
 
-          if (col.재고 != null && row[col.재고] != null) {
+          if (code && col.재고 != null && row[col.재고] != null) {
             const stockCode = String(code);
             const existingStock = DB.inventory.find(s => String(s.code) === stockCode);
             if (existingStock) {
