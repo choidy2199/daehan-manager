@@ -1978,7 +1978,11 @@ function renderOnlineSales() {
     html += '<tr'+(naver.profit<0||open.profit<0?' style="background:#FFF5F5"':'')+'>';
     html += '<td><span class="os-date">'+(item.date||'-')+'</span></td>';
     html += '<td>'+(item.code||'-')+'</td>';
-    html += '<td style="text-align:left;font-weight:500">'+(item.model||'-')+'</td>';
+    if (editable) {
+      html += '<td><input class="os-input os-input-text" value="'+(item.model||'')+'" placeholder="모델명" onchange="updateOsField('+ri+',\'model\',this.value)" style="font-weight:500"></td>';
+    } else {
+      html += '<td style="text-align:left;font-weight:500">'+(item.model||'-')+'</td>';
+    }
     html += '<td class="center">'+osStockHtml(stockNum)+'</td>';
     if (editable) {
       html += '<td><input class="os-input os-input-text os-vendor-input" value="'+(item.vendor||'')+'" onchange="updateOsField('+ri+',\'vendor\',this.value)"></td>';
