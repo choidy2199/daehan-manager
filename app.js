@@ -4229,7 +4229,7 @@ function renderGenProducts() {
       <td class="num">${fmt(p.priceOpen || 0)}${marginBadge(p.priceOpen, p.cost, DB.settings.openElecFee || 0.13)}</td>
       <td class="center" style="cursor:pointer" onclick="editTierField(${idx},'in')">${(p.inQty && p.inPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:9px;color:#5A6070">' + p.inQty + '개</span><span style="font-size:12px;font-weight:600;color:#185FA5">' + (p.inPrice).toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB">-</span>'}</td>
       <td class="center" style="cursor:pointer" onclick="editTierField(${idx},'out')">${(p.outQty && p.outPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:9px;color:#5A6070">' + p.outQty + '개</span><span style="font-size:12px;font-weight:600;color:#185FA5">' + (p.outPrice).toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB">-</span>'}</td>
-      <td class="center" style="cursor:pointer" onclick="editTierField(${idx},'pallet')">${p.palletQty ? '<span style="font-size:11px;color:#5A6070;font-weight:500">' + (p.palletQty).toLocaleString() + '개</span>' : '<span style="color:#DDE1EB">-</span>'}</td>
+      <td class="center" style="cursor:pointer" onclick="editTierField(${idx},'pallet')">${(p.palletQty && p.palletPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:9px;color:#5A6070">' + p.palletQty + '개</span><span style="font-size:12px;font-weight:600;color:#185FA5">' + (p.palletPrice).toLocaleString() + '</span></div>' : p.palletQty ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:9px;color:#5A6070">' + p.palletQty + '개</span><span style="font-size:10px;color:#9BA3B2">단가없음</span></div>' : '<span style="color:#DDE1EB">-</span>'}</td>
       <td><input value="${(p.memo || '').replace(/"/g,'&quot;')}" onchange="updateGenMemo(${idx},this.value)" placeholder="" style="width:100%;font-size:12px;border:1px solid #DDE1EB;border-radius:4px;padding:2px 6px;background:#fff;color:#1A1D23;text-align:left"></td>
       <td style="text-align:left;font-size:12px;cursor:pointer;white-space:nowrap;padding-left:8px" onclick="editGenInDate(${idx})">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
     </tr>`;
@@ -4290,7 +4290,10 @@ function editTierField(idx, type) {
   } else if (type === 'pallet') {
     var qty = prompt('파레트 수량 (예: 1200)', p.palletQty || '');
     if (qty === null) return;
+    var price = prompt('파레트 단가 (예: 700, 없으면 빈칸)', p.palletPrice || '');
+    if (price === null) return;
     genProducts[idx].palletQty = parseInt(String(qty).replace(/,/g,'')) || 0;
+    genProducts[idx].palletPrice = parseInt(String(price).replace(/,/g,'')) || 0;
   }
   localStorage.setItem('mw_gen_products', JSON.stringify(genProducts));
   renderGenProducts();
@@ -4309,10 +4312,10 @@ function editGenInDate(idx) {
 
 function downloadGenTemplate() {
   if (!window.XLSX) { toast('SheetJS 로딩 중...'); return; }
-  const data = [['코드', '관리코드', '대분류', '모델 및 규격', '제품설명 및 품명', '원가', '도매(A)', '스토어팜', '오픈마켓', 'IN수량', 'IN단가', 'OUT수량', 'OUT단가', '파레트수량', '비고', '입고날짜']];
-  data.push(['SAMPLE-001', '8801234567890', '전동공구', '샘플 제품', '샘플 설명', 90000, 95000, 97000, 105000, 10, 800, 120, 750, 1200, '', '']);
+  const data = [['코드', '관리코드', '대분류', '모델 및 규격', '제품설명 및 품명', '원가', '도매(A)', '스토어팜', '오픈마켓', 'IN수량', 'IN단가', 'OUT수량', 'OUT단가', '파레트수량', '파레트단가', '비고', '입고날짜']];
+  data.push(['SAMPLE-001', '8801234567890', '전동공구', '샘플 제품', '샘플 설명', 90000, 95000, 97000, 105000, 10, 800, 120, 750, 1200, 700, '', '']);
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [{wch:12},{wch:16},{wch:12},{wch:25},{wch:40},{wch:12},{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:8},{wch:10},{wch:10},{wch:20},{wch:15}];
+  ws['!cols'] = [{wch:12},{wch:16},{wch:12},{wch:25},{wch:40},{wch:12},{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:8},{wch:10},{wch:10},{wch:10},{wch:20},{wch:15}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '일반제품');
   XLSX.writeFile(wb, '일반제품_양식.xlsx');
@@ -4348,8 +4351,9 @@ function uploadGenProducts(input) {
           outQty: parseInt(r[11]) || 0,
           outPrice: parseInt(r[12]) || 0,
           palletQty: parseInt(r[13]) || 0,
-          memo: String(r[14] || ''),
-          inDate: String(r[15] || ''),
+          palletPrice: parseInt(r[14]) || 0,
+          memo: String(r[15] || ''),
+          inDate: String(r[16] || ''),
           source: 'general'
         });
         count++;
@@ -4382,6 +4386,9 @@ function genEstNo() {
 function getGenTierPrice(genProduct, qty) {
   if (!genProduct) return { price: 0, tier: '' };
   var q = parseInt(qty) || 0;
+  if (genProduct.palletQty && genProduct.palletPrice && q >= genProduct.palletQty) {
+    return { price: genProduct.palletPrice, tier: '파레트' };
+  }
   if (genProduct.outQty && genProduct.outPrice && q >= genProduct.outQty) {
     return { price: genProduct.outPrice, tier: 'OUT' };
   }
@@ -4430,7 +4437,7 @@ function searchEstProducts(val) {
     if (p._source === 'general') {
       inCell = (p.inQty && p.inPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:8px;color:#5A6070">' + p.inQty + '개</span><span style="font-size:10px;font-weight:600;color:#185FA5">' + p.inPrice.toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB;font-size:10px">-</span>';
       outCell = (p.outQty && p.outPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:8px;color:#5A6070">' + p.outQty + '개</span><span style="font-size:10px;font-weight:600;color:#185FA5">' + p.outPrice.toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB;font-size:10px">-</span>';
-      palletCell = p.palletQty ? '<span style="font-size:10px;color:#5A6070">' + p.palletQty.toLocaleString() + '개</span>' : '<span style="color:#DDE1EB;font-size:10px">-</span>';
+      palletCell = (p.palletQty && p.palletPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:8px;color:#5A6070">' + p.palletQty + '개</span><span style="font-size:10px;font-weight:600;color:#185FA5">' + p.palletPrice.toLocaleString() + '</span></div>' : p.palletQty ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:8px;color:#5A6070">' + p.palletQty + '개</span><span style="font-size:9px;color:#9BA3B2">단가없음</span></div>' : '<span style="color:#DDE1EB;font-size:10px">-</span>';
     } else {
       inCell = '<span style="color:#DDE1EB;font-size:10px">-</span>';
       outCell = '<span style="color:#DDE1EB;font-size:10px">-</span>';
@@ -4570,7 +4577,7 @@ function renderEstimateItems() {
       <td class="center" style="font-weight:500">${p ? p.model : item.model}</td>
       <td class="center" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p ? p.description : item.description}</td>
       <td class="center"><input type="number" value="${qty || ''}" onchange="onEstQtyChange(${i},this.value)" min="0" style="width:60px;text-align:center"></td>
-      <td class="num"><input type="number" value="${aPrice || ''}" onchange="onEstPriceChange(${i},this.value)" min="0" style="width:80px;text-align:right;font-size:12px">${item._tier === 'IN' ? '<span style="font-size:8px;background:#E6F1FB;color:#0C447C;padding:1px 4px;border-radius:2px;font-weight:600;margin-left:4px">IN</span>' : (item._tier === 'OUT' ? '<span style="font-size:8px;background:#E6F1FB;color:#0C447C;padding:1px 4px;border-radius:2px;font-weight:600;margin-left:4px">OUT</span>' : '')}</td>
+      <td class="num"><input type="number" value="${aPrice || ''}" onchange="onEstPriceChange(${i},this.value)" min="0" style="width:80px;text-align:right;font-size:12px">${item._tier === '파레트' ? '<span style="font-size:8px;background:#FAEEDA;color:#633806;padding:1px 4px;border-radius:2px;font-weight:600;margin-left:4px">파레트</span>' : item._tier === 'IN' ? '<span style="font-size:8px;background:#E6F1FB;color:#0C447C;padding:1px 4px;border-radius:2px;font-weight:600;margin-left:4px">IN</span>' : (item._tier === 'OUT' ? '<span style="font-size:8px;background:#E6F1FB;color:#0C447C;padding:1px 4px;border-radius:2px;font-weight:600;margin-left:4px">OUT</span>' : '')}</td>
       <td class="num" style="font-weight:600">${amount ? fmt(amount) : '-'}</td>
       <td class="num" style="color:#5A6070">${amount ? fmt(vat) : '-'}</td>
       <td class="center"><input value="${item.memo || ''}" onchange="onEstMemoChange(${i},this.value)" style="width:60px;font-size:12px;text-align:center"></td>
