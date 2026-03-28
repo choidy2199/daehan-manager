@@ -4662,9 +4662,10 @@ function savePartsPrices() {
 
 function getPartPrice(key) { return partsPrices[key] || 0; }
 
-function addSetbunItem() {
+function addSetbunItem(mode) {
   document.getElementById('setbun-edit-title').textContent = '세트 분해 분석 추가';
   document.getElementById('sb-edit-idx').value = -1;
+  document.getElementById('sb-search-mode').value = mode || 'normal';
   document.getElementById('sb-set-code').value = '';
   document.getElementById('sb-bare-code').value = '';
   document.getElementById('sb-set-model-input').value = '';
@@ -4675,6 +4676,41 @@ function addSetbunItem() {
   document.getElementById('sb-promo-cost').value = '';
   sbUpdateBatteryOptions('');
   document.getElementById('setbun-edit-modal').classList.add('show');
+}
+
+function showSetbunAC(inputEl, callback) {
+  var val = inputEl.value.trim();
+  if (!val || val.length < 1) { hideAC(); return; }
+  var mode = document.getElementById('sb-search-mode').value;
+  var q = val.toLowerCase();
+  var results;
+  if (mode === 'promo') {
+    results = DB.products.filter(function(p) {
+      var hasPromo = DB.promotions.some(function(pr) { return String(pr.code) === String(p.code); });
+      if (!hasPromo) return false;
+      return String(p.code).includes(q) || String(p.model || '').toLowerCase().includes(q) || String(p.description || '').toLowerCase().includes(q);
+    }).slice(0, 15);
+  } else {
+    results = searchProducts(val);
+  }
+  if (!results || !results.length) { hideAC(); return; }
+  acActive = { input: inputEl, callback: callback };
+  acEl.innerHTML = results.map(function(p) {
+    var stock = findStock(p.code);
+    var stockTxt = stock != null ? '[' + stock + ']' : '';
+    var promoTag = mode === 'promo' ? '<span style="color:#CC2222;font-size:9px;margin-left:4px">P</span>' : '';
+    return '<div class="ac-item" data-code="' + p.code + '">' +
+      '<span class="ac-code">' + p.code + '</span>' +
+      '<span class="ac-model">' + String(p.model || '') + promoTag + '</span>' +
+      '<span class="ac-desc">' + String(p.description || '').slice(0, 30) + '</span>' +
+      '<span class="ac-price">' + fmt(p.supplyPrice) + ' ' + stockTxt + '</span>' +
+      '</div>';
+  }).join('');
+  var rect = inputEl.getBoundingClientRect();
+  acEl.style.position = 'fixed';
+  acEl.style.top = (rect.bottom + 2) + 'px';
+  acEl.style.left = rect.left + 'px';
+  acEl.classList.add('show');
 }
 
 function closeSetbunModal() { document.getElementById('setbun-edit-modal').classList.remove('show'); }

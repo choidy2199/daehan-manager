@@ -617,17 +617,17 @@
   <div class="section">
     <div class="section-header">
       <span>세트 분해 분석</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:12px;font-weight:400;opacity:0.7" id="setbun-count">0건</span>
-        <button class="btn-action" onclick="addSetbunItem()">+ 분석 추가</button>
-      </div>
+      <span style="font-size:12px;font-weight:400;opacity:0.7" id="setbun-count">0건</span>
     </div>
     <div class="section-body" style="padding:12px">
       <div style="display:flex;gap:12px">
         <div style="flex:1;min-width:0;border:1px solid #DDE1EB;border-radius:6px;overflow:hidden">
           <div style="background:#1A1D23;color:white;padding:0 12px;height:32px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600">
-            <span>일반</span>
-            <span style="font-size:9px;font-weight:500;padding:2px 8px;border-radius:3px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8)">기본 원가 기준</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span>일반</span>
+              <span style="font-size:9px;font-weight:500;padding:2px 8px;border-radius:3px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8)">기본 원가 기준</span>
+            </div>
+            <button class="btn-primary" onclick="addSetbunItem('normal')" style="padding:3px 10px;font-size:10px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3)">+ 분석 추가</button>
           </div>
           <div class="table-scroll" style="overflow-x:auto">
             <table class="data-table" id="setbun-table-normal" style="font-size:11px">
@@ -643,8 +643,11 @@
         </div>
         <div style="flex:1;min-width:0;border:1px solid #DDE1EB;border-radius:6px;overflow:hidden">
           <div style="background:#185FA5;color:white;padding:0 12px;height:32px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600">
-            <span>프로모션</span>
-            <span style="font-size:9px;font-weight:500;padding:2px 8px;border-radius:3px;background:rgba(255,255,255,0.2);color:#FFF">프로모션 원가 기준</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span>프로모션</span>
+              <span style="font-size:9px;font-weight:500;padding:2px 8px;border-radius:3px;background:rgba(255,255,255,0.2);color:#FFF">프로모션 원가 기준</span>
+            </div>
+            <button class="btn-primary" onclick="addSetbunItem('promo')" style="padding:3px 10px;font-size:10px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3)">+ 분석 추가</button>
           </div>
           <div class="table-scroll" style="overflow-x:auto">
             <table class="data-table" id="setbun-table-promo" style="font-size:11px">
@@ -1462,6 +1465,7 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="sb-edit-idx" value="-1">
+      <input type="hidden" id="sb-search-mode" value="normal">
       <input type="hidden" id="sb-set-code" value="">
       <input type="hidden" id="sb-bare-code" value="">
 
@@ -1470,8 +1474,8 @@
         <div style="flex:1">
           <label class="label">모델명 검색</label>
           <input class="input" id="sb-set-model-input" placeholder="모델명 검색 (예: FID2)"
-            oninput="showAC(this, c => sbSelectSet(c))"
-            onfocus="showAC(this, c => sbSelectSet(c))">
+            oninput="showSetbunAC(this, c => sbSelectSet(c))"
+            onfocus="if(this.value) showSetbunAC(this, c => sbSelectSet(c))">
         </div>
         <div id="sb-set-info" style="flex:2;font-size:13px;color:#5A6070;padding:20px 0 0">-</div>
       </div>
