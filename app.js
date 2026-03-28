@@ -2018,9 +2018,13 @@ function renderOnlineSales() {
     var ri = data.indexOf(item);
     var stockNum = findStock(item.code);
     if (stockNum==null) stockNum = item.stock||0;
-    var naver = calcOsProfit(item.naverPrice||0, item.promoCost||0, naverFee);
-    var open = calcOsProfit(item.openPrice||0, item.promoCost||0, openFee);
+    var osProd = item.code ? findProduct(item.code) : null;
+    var osPdc = osProd ? (osProd.productDC || 0) : 0;
+    var costP = item.promoCost ? Math.round(calcOrderCost(item.promoCost, osPdc)) : 0;
+    var naver = calcOsProfit(item.naverPrice||0, costP||0, naverFee);
+    var open = calcOsProfit(item.openPrice||0, costP||0, openFee);
     var pCls = function(v){return v>=0?'fc-positive':'fc-negative';};
+
     var pSign = function(v){return v>=0?'+':'';};
     html += '<tr'+(naver.profit<0||open.profit<0?' style="background:#FFF5F5"':'')+'>';
     html += '<td><span class="os-date">'+(item.date||'-')+'</span></td>';
@@ -2038,7 +2042,7 @@ function renderOnlineSales() {
       html += '<td>'+(item.vendor||'-')+'</td>';
       html += '<td class="num">'+(item.price?item.price.toLocaleString():'-')+'</td>';
     }
-    html += '<td class="num" style="font-weight:600;color:#185FA5">'+(item.promoCost?item.promoCost.toLocaleString():'-')+'</td>';
+    html += '<td class="num" style="font-weight:600;color:#185FA5">'+(costP?costP.toLocaleString():'-')+'</td>';
     if (editable) {
       html += '<td><input class="os-input os-input-num" value="'+(item.naverPrice?item.naverPrice.toLocaleString():'')+'" onchange="updateOsNumField('+ri+',\'naverPrice\',this.value)" style="width:80px"></td>';
     } else { html += '<td class="num">'+(item.naverPrice?item.naverPrice.toLocaleString():'-')+'</td>'; }
@@ -2067,8 +2071,9 @@ function renderOsSummary(data, naverFee, openFee) {
   var promos=[],nRates=[],oRates=[],warn=0;
   data.forEach(function(item){
     if(item.promoName&&promos.indexOf(item.promoName)===-1)promos.push(item.promoName);
-    if(item.naverPrice&&item.promoCost){var n=calcOsProfit(item.naverPrice,item.promoCost,naverFee);nRates.push(n.rate);}
-    if(item.openPrice&&item.promoCost){var o=calcOsProfit(item.openPrice,item.promoCost,openFee);oRates.push(o.rate);}
+    var sProd=item.code?findProduct(item.code):null;var sPdc=sProd?(sProd.productDC||0):0;var sCostP=item.promoCost?Math.round(calcOrderCost(item.promoCost,sPdc)):0;
+    if(item.naverPrice&&sCostP){var n=calcOsProfit(item.naverPrice,sCostP,naverFee);nRates.push(n.rate);}
+    if(item.openPrice&&sCostP){var o=calcOsProfit(item.openPrice,sCostP,openFee);oRates.push(o.rate);}
     var sn=findStock(item.code);if(sn==null)sn=item.stock||0;if(sn<=2)warn++;
   });
   var avgN=nRates.length?(nRates.reduce(function(a,b){return a+b},0)/nRates.length):0;
@@ -2182,11 +2187,12 @@ function importOnlineSalesProducts(){
 function exportOnlineSalesExcel(){
   if(typeof XLSX==='undefined'){toast('XLSX 라이브러리 필요');return;}
   var s=DB.settings,naverFee=s.naverFee||0.0663,openFee=s.openElecFee||0.13,data=getOsData();
-  var rows=[['날짜','코드','모델','재고','업체명','판매가','프로모션원가','스토어팜판매가','스토어팜이익','스토어팜이익률','오픈마켓판매가','오픈마켓이익','오픈마켓이익률','프로모션']];
+  var rows=[['날짜','코드','모델','재고','업체명','판매가','원가P','스토어팜판매가','스토어팜이익','스토어팜이익률','오픈마켓판매가','오픈마켓이익','오픈마켓이익률','프로모션']];
   data.forEach(function(item){
-    var naver=calcOsProfit(item.naverPrice||0,item.promoCost||0,naverFee);
-    var open=calcOsProfit(item.openPrice||0,item.promoCost||0,openFee);
-    rows.push([item.date,item.code,item.model,item.stock,item.vendor,item.price,item.promoCost,item.naverPrice,naver.profit,Math.round(naver.rate*10)/10,item.openPrice,open.profit,Math.round(open.rate*10)/10,item.promoName]);
+    var xProd=item.code?findProduct(item.code):null;var xPdc=xProd?(xProd.productDC||0):0;var xCostP=item.promoCost?Math.round(calcOrderCost(item.promoCost,xPdc)):0;
+    var naver=calcOsProfit(item.naverPrice||0,xCostP||0,naverFee);
+    var open=calcOsProfit(item.openPrice||0,xCostP||0,openFee);
+    rows.push([item.date,item.code,item.model,item.stock,item.vendor,item.price,xCostP,item.naverPrice,naver.profit,Math.round(naver.rate*10)/10,item.openPrice,open.profit,Math.round(open.rate*10)/10,item.promoName]);
   });
   var ws=XLSX.utils.aoa_to_sheet(rows),wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'온라인판매관리');
