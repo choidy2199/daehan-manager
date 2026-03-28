@@ -240,6 +240,31 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
 .fc-negative { color:#CC2222; }
 .fc-dash { color:#9BA3B2; font-size:12px; }
 
+/* Online Sales V2 */
+.os-input { width:100%; height:26px; border:1px solid #DDE1EB; border-radius:4px; padding:0 6px; font-size:11px; font-family:'Pretendard',sans-serif; color:#1A1D23; background:#FFF; }
+.os-input:focus { border-color:#185FA5; outline:none; }
+.os-input::placeholder { color:#9BA3B2; }
+.os-input-num { text-align:right; }
+.os-input-text { text-align:left; }
+.os-del-btn { width:22px; height:22px; border-radius:4px; border:none; background:#FCEBEB; color:#CC2222; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+.os-del-btn:hover { background:#CC2222; color:#FFF; }
+.os-stock-cell { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.os-stock-ok { color:#1D9E75; font-weight:600; }
+.os-stock-warn { color:#EF9F27; font-weight:600; }
+.os-stock-danger { color:#CC2222; font-weight:600; }
+.os-stock-alert { font-size:8px; font-weight:600; padding:1px 4px; border-radius:2px; white-space:nowrap; }
+.os-stock-alert-warn { background:#FAEEDA; color:#854F0B; }
+.os-stock-alert-danger { background:#FCEBEB; color:#791F1F; }
+.os-promo-badge { font-size:9px; font-weight:600; padding:1px 6px; border-radius:3px; background:#FAEEDA; color:#633806; white-space:nowrap; display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+.os-vendor-input { width:70px; }
+.os-filter-pill { padding:3px 10px; font-size:10px; font-weight:500; border-radius:12px; cursor:pointer; border:1px solid #DDE1EB; background:#FFF; color:#5A6070; }
+.os-filter-pill.active { background:#185FA5; color:#FFF; border-color:#185FA5; }
+.os-filter-pill.pill-amber { background:#FAEEDA; color:#633806; border-color:#FAC775; }
+.os-sum-card { flex:1; background:#F4F6FA; border-radius:4px; padding:6px 10px; text-align:center; }
+.os-sum-label { font-size:9px; color:#5A6070; }
+.os-sum-val { font-size:14px; font-weight:600; color:#1A1D23; }
+.os-date { color:#9BA3B2; font-size:10px; }
+
 /* Toast */
 .toast { position: fixed; top: 60px; right: 20px; background: #1A1D23; color: white; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500; z-index: 300; transform: translateX(120%); transition: transform 0.3s; }
 .toast.show { transform: translateX(0); }

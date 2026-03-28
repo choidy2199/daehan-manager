@@ -268,7 +268,7 @@ function switchTab(tab) {
   event.target.classList.add('active');
   if (tab === 'catalog') renderCatalog();
   if (tab === 'order') renderAllOrders();
-  if (tab === 'sales') renderSales();
+  if (tab === 'sales') { renderSales(); renderOnlineSales(); }
   if (tab === 'promo') { renderPromo(); renderAllPromosV2(); }
   if (tab === 'setbun') renderSetbun();
   if (tab === 'estimate') renderEstimateList();
@@ -1871,7 +1871,221 @@ function switchSalesSub(sub) {
   var tabs = document.querySelectorAll('#sales-sub-tabs .sub-tab');
   tabs[0].classList.toggle('active', sub === 'manage');
   tabs[1].classList.toggle('active', sub === 'calc');
+  if (sub === 'manage') renderOnlineSales();
   if (sub === 'calc') renderFeeCalc();
+}
+
+// ======================== 온라인판매관리 V2 ========================
+var OS_KEY = 'mw_online_sales';
+var OS_MONTH_KEY = 'mw_online_sales_month';
+var OS_ARCHIVE_KEY = 'mw_online_sales_archive';
+var onlineSalesData = loadObj(OS_KEY, []);
+var onlineSalesMonth = loadObj(OS_MONTH_KEY, null);
+var onlineSalesArchive = loadObj(OS_ARCHIVE_KEY, {});
+var osPromoFilter = 'all';
+
+(function() {
+  var now = new Date();
+  var curMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  if (!onlineSalesMonth) {
+    onlineSalesMonth = curMonth;
+    localStorage.setItem(OS_MONTH_KEY, JSON.stringify(onlineSalesMonth));
+  }
+})();
+
+function saveOnlineSales() { localStorage.setItem(OS_KEY, JSON.stringify(onlineSalesData)); }
+function todayStr() { var d = new Date(); return d.getFullYear() + '.' + (d.getMonth()+1) + '.' + d.getDate(); }
+
+function buildOsMonthSelect() {
+  var sel = document.getElementById('os-month-select');
+  if (!sel) return;
+  var now = new Date();
+  var curMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  var options = '<option value="' + curMonth + '">' + curMonth.replace('-','년 ') + '월 (현재)</option>';
+  Object.keys(onlineSalesArchive).sort().reverse().forEach(function(m) {
+    options += '<option value="' + m + '">' + m.replace('-','년 ') + '월</option>';
+  });
+  sel.innerHTML = options;
+  sel.value = onlineSalesMonth;
+}
+
+function loadOnlineSalesMonth(month) {
+  onlineSalesMonth = month;
+  localStorage.setItem(OS_MONTH_KEY, JSON.stringify(onlineSalesMonth));
+  osPromoFilter = 'all';
+  renderOnlineSales();
+}
+
+function isCurrentMonth() {
+  var now = new Date();
+  return onlineSalesMonth === now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+}
+
+function getOsData() { return isCurrentMonth() ? onlineSalesData : (onlineSalesArchive[onlineSalesMonth] || []); }
+
+function buildOsPromoFilters() {
+  var container = document.getElementById('os-promo-filters');
+  if (!container) return;
+  var data = getOsData();
+  var promos = [];
+  data.forEach(function(item) { if (item.promoName && promos.indexOf(item.promoName)===-1) promos.push(item.promoName); });
+  var html = '<span class="os-filter-pill ' + (osPromoFilter==='all'?'active':'') + '" onclick="setOsPromoFilter(\'all\')">전체</span>';
+  promos.forEach(function(p) {
+    var cls = osPromoFilter===p ? 'active' : 'pill-amber';
+    var short = p.length>20 ? p.substring(0,20)+'...' : p;
+    html += '<span class="os-filter-pill ' + cls + '" onclick="setOsPromoFilter(\'' + p.replace(/'/g,"\\'") + '\')" title="' + p + '">' + short + '</span>';
+  });
+  container.innerHTML = html;
+  var hint = document.getElementById('os-archive-hint');
+  if (hint) { var cnt = Object.keys(onlineSalesArchive).length; hint.textContent = cnt ? '아카이브: ' + cnt + '개월' : ''; }
+}
+
+function setOsPromoFilter(f) { osPromoFilter = f; renderOnlineSales(); }
+
+function calcOsProfit(sellPrice, cost, feeRate) {
+  if (!sellPrice || !cost) return {profit:0, rate:0};
+  var profit = Math.round(sellPrice - sellPrice/11 - sellPrice*feeRate - cost);
+  return {profit:profit, rate:(profit/sellPrice)*100};
+}
+
+function osStockHtml(stock) {
+  var n = parseInt(stock)||0;
+  if (n>=3) return '<div class="os-stock-cell"><span class="os-stock-ok">'+n+'</span></div>';
+  if (n>=1) return '<div class="os-stock-cell"><span class="os-stock-warn">'+n+'</span><span class="os-stock-alert os-stock-alert-warn">가격확인</span></div>';
+  return '<div class="os-stock-cell"><span class="os-stock-danger">0</span><span class="os-stock-alert os-stock-alert-danger">재발주</span></div>';
+}
+
+function renderOnlineSales() {
+  buildOsMonthSelect();
+  buildOsPromoFilters();
+  var s = DB.settings;
+  var naverFee = s.naverFee || 0.0663;
+  var openFee = s.openElecFee || 0.13;
+  var data = getOsData();
+  var filtered = osPromoFilter==='all' ? data : data.filter(function(item){return item.promoName===osPromoFilter;});
+  var editable = isCurrentMonth();
+  var body = document.getElementById('os-body');
+  if (!body) return;
+  var html = '';
+  filtered.forEach(function(item) {
+    var ri = data.indexOf(item);
+    var stockNum = findStock(item.code);
+    if (stockNum==null) stockNum = item.stock||0;
+    var naver = calcOsProfit(item.naverPrice||0, item.promoCost||0, naverFee);
+    var open = calcOsProfit(item.openPrice||0, item.promoCost||0, openFee);
+    var pCls = function(v){return v>=0?'fc-positive':'fc-negative';};
+    var pSign = function(v){return v>=0?'+':'';};
+    html += '<tr'+(naver.profit<0||open.profit<0?' style="background:#FFF5F5"':'')+'>';
+    html += '<td><span class="os-date">'+(item.date||'-')+'</span></td>';
+    html += '<td>'+(item.code||'-')+'</td>';
+    html += '<td style="text-align:left;font-weight:500">'+(item.model||'-')+'</td>';
+    html += '<td class="center">'+osStockHtml(stockNum)+'</td>';
+    if (editable) {
+      html += '<td><input class="os-input os-input-text os-vendor-input" value="'+(item.vendor||'')+'" onchange="updateOsField('+ri+',\'vendor\',this.value)"></td>';
+      html += '<td><input class="os-input os-input-num" value="'+(item.price?item.price.toLocaleString():'')+'" onchange="updateOsNumField('+ri+',\'price\',this.value)" style="width:80px"></td>';
+    } else {
+      html += '<td>'+(item.vendor||'-')+'</td>';
+      html += '<td class="num">'+(item.price?item.price.toLocaleString():'-')+'</td>';
+    }
+    html += '<td class="num" style="font-weight:600;color:#185FA5">'+(item.promoCost?item.promoCost.toLocaleString():'-')+'</td>';
+    if (editable) {
+      html += '<td><input class="os-input os-input-num" value="'+(item.naverPrice?item.naverPrice.toLocaleString():'')+'" onchange="updateOsNumField('+ri+',\'naverPrice\',this.value)" style="width:80px"></td>';
+    } else { html += '<td class="num">'+(item.naverPrice?item.naverPrice.toLocaleString():'-')+'</td>'; }
+    html += '<td class="num '+pCls(naver.profit)+'" style="font-weight:600">'+(item.naverPrice?pSign(naver.profit)+naver.profit.toLocaleString():'-')+'</td>';
+    html += '<td class="center '+pCls(naver.rate)+'">'+(item.naverPrice?naver.rate.toFixed(1)+'%':'-')+'</td>';
+    if (editable) {
+      html += '<td><input class="os-input os-input-num" value="'+(item.openPrice?item.openPrice.toLocaleString():'')+'" onchange="updateOsNumField('+ri+',\'openPrice\',this.value)" style="width:80px"></td>';
+    } else { html += '<td class="num">'+(item.openPrice?item.openPrice.toLocaleString():'-')+'</td>'; }
+    html += '<td class="num '+pCls(open.profit)+'" style="font-weight:600">'+(item.openPrice?pSign(open.profit)+open.profit.toLocaleString():'-')+'</td>';
+    html += '<td class="center '+pCls(open.rate)+'">'+(item.openPrice?open.rate.toFixed(1)+'%':'-')+'</td>';
+    if (editable) {
+      html += '<td><input class="os-input os-input-text" value="'+(item.promoName||'')+'" onchange="updateOsField('+ri+',\'promoName\',this.value)" style="width:130px;font-size:10px"></td>';
+    } else { html += '<td style="text-align:left"><span class="os-promo-badge">'+(item.promoName||'-')+'</span></td>'; }
+    if (editable) { html += '<td class="center"><button class="os-del-btn" onclick="removeOsRow('+ri+')">✕</button></td>'; }
+    else { html += '<td></td>'; }
+    html += '</tr>';
+  });
+  if (!filtered.length) html = '<tr><td colspan="15"><div class="empty-state"><p>제품을 추가하세요</p></div></td></tr>';
+  body.innerHTML = html;
+  renderOsSummary(filtered, naverFee, openFee);
+  initColumnResize('os-table');
+  initStickyHeader('os-table');
+}
+
+function renderOsSummary(data, naverFee, openFee) {
+  var c = document.getElementById('os-summary');
+  if (!c) return;
+  var promos=[],nRates=[],oRates=[],warn=0;
+  data.forEach(function(item){
+    if(item.promoName&&promos.indexOf(item.promoName)===-1)promos.push(item.promoName);
+    if(item.naverPrice&&item.promoCost){var n=calcOsProfit(item.naverPrice,item.promoCost,naverFee);nRates.push(n.rate);}
+    if(item.openPrice&&item.promoCost){var o=calcOsProfit(item.openPrice,item.promoCost,openFee);oRates.push(o.rate);}
+    var sn=findStock(item.code);if(sn==null)sn=item.stock||0;if(sn<=2)warn++;
+  });
+  var avgN=nRates.length?(nRates.reduce(function(a,b){return a+b},0)/nRates.length):0;
+  var avgO=oRates.length?(oRates.reduce(function(a,b){return a+b},0)/oRates.length):0;
+  c.innerHTML='<div class="os-sum-card"><div class="os-sum-label">총 제품수</div><div class="os-sum-val">'+data.length+'건</div></div>'+
+    '<div class="os-sum-card"><div class="os-sum-label">프로모션</div><div class="os-sum-val">'+promos.length+'개</div></div>'+
+    '<div class="os-sum-card"><div class="os-sum-label">스토어팜 평균</div><div class="os-sum-val" style="color:'+(avgN>=0?'#1D9E75':'#CC2222')+'">'+avgN.toFixed(1)+'%</div></div>'+
+    '<div class="os-sum-card"><div class="os-sum-label">오픈마켓 평균</div><div class="os-sum-val" style="color:'+(avgO>=0?'#1D9E75':'#CC2222')+'">'+avgO.toFixed(1)+'%</div></div>'+
+    '<div class="os-sum-card"><div class="os-sum-label">재고 경고</div><div class="os-sum-val" style="color:#CC2222">'+warn+'건</div></div>';
+}
+
+function updateOsField(idx,field,val){onlineSalesData[idx][field]=val;saveOnlineSales();renderOnlineSales();}
+function updateOsNumField(idx,field,val){onlineSalesData[idx][field]=parseInt(String(val).replace(/,/g,''))||0;saveOnlineSales();renderOnlineSales();}
+
+function addOnlineSalesRow(){
+  onlineSalesData.push({date:todayStr(),code:'',model:'',stock:0,vendor:'',price:0,promoCost:0,naverPrice:0,openPrice:0,promoName:''});
+  saveOnlineSales();renderOnlineSales();
+}
+
+function removeOsRow(idx){
+  if(!confirm('이 항목을 삭제하시겠습니까?'))return;
+  onlineSalesData.splice(idx,1);saveOnlineSales();renderOnlineSales();
+}
+
+function importOnlineSalesProducts(){
+  var input=prompt('불러올 제품 코드 (쉼표 구분, 예: 23184,23185,23736)');
+  if(!input)return;
+  var codes=input.split(',').map(function(c){return c.trim()}).filter(function(c){return c});
+  var added=0;
+  codes.forEach(function(code){
+    if(onlineSalesData.some(function(d){return String(d.code)===String(code)}))return;
+    var p=DB.products.find(function(pr){return String(pr.code)===String(code)});
+    if(!p)return;
+    var ec=getEffectiveCost(code);
+    var stock=findStock(code);
+    onlineSalesData.push({date:todayStr(),code:String(code),model:p.model||'',stock:stock!=null?stock:0,vendor:'',price:p.supplyPrice||0,promoCost:ec.cost||0,naverPrice:0,openPrice:0,promoName:ec.isPromo?ec.promoName:''});
+    added++;
+  });
+  saveOnlineSales();renderOnlineSales();
+  toast(added+'건 추가'+(codes.length-added>0?' ('+(codes.length-added)+'건 중복/미존재)':''));
+}
+
+function exportOnlineSalesExcel(){
+  if(typeof XLSX==='undefined'){toast('XLSX 라이브러리 필요');return;}
+  var s=DB.settings,naverFee=s.naverFee||0.0663,openFee=s.openElecFee||0.13,data=getOsData();
+  var rows=[['날짜','코드','모델','재고','업체명','판매가','프로모션원가','스토어팜판매가','스토어팜이익','스토어팜이익률','오픈마켓판매가','오픈마켓이익','오픈마켓이익률','프로모션']];
+  data.forEach(function(item){
+    var naver=calcOsProfit(item.naverPrice||0,item.promoCost||0,naverFee);
+    var open=calcOsProfit(item.openPrice||0,item.promoCost||0,openFee);
+    rows.push([item.date,item.code,item.model,item.stock,item.vendor,item.price,item.promoCost,item.naverPrice,naver.profit,Math.round(naver.rate*10)/10,item.openPrice,open.profit,Math.round(open.rate*10)/10,item.promoName]);
+  });
+  var ws=XLSX.utils.aoa_to_sheet(rows),wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'온라인판매관리');
+  XLSX.writeFile(wb,'온라인판매관리_'+onlineSalesMonth+'.xlsx');
+}
+
+function archiveOnlineSales(){
+  if(!onlineSalesData.length){toast('저장할 데이터가 없습니다');return;}
+  if(!confirm('현재 월('+onlineSalesMonth+') 데이터를 아카이브하고 새 월을 시작하시겠습니까?'))return;
+  onlineSalesArchive[onlineSalesMonth]=JSON.parse(JSON.stringify(onlineSalesData));
+  localStorage.setItem(OS_ARCHIVE_KEY,JSON.stringify(onlineSalesArchive));
+  var now=new Date(),nextMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  if(nextMonth===onlineSalesMonth){var nm=new Date(now.getFullYear(),now.getMonth()+1,1);nextMonth=nm.getFullYear()+'-'+String(nm.getMonth()+1).padStart(2,'0');}
+  onlineSalesData=[];onlineSalesMonth=nextMonth;
+  saveOnlineSales();localStorage.setItem(OS_MONTH_KEY,JSON.stringify(onlineSalesMonth));
+  renderOnlineSales();toast('아카이브 완료! 새 월('+nextMonth+') 시작');
 }
 
 // ======================== 수수료 계산기 ========================

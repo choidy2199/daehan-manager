@@ -449,34 +449,50 @@
   <div class="section">
     <div class="section-header">
       <span>온라인판매관리</span>
-      <div style="display:flex;gap:8px">
-        <button class="btn-action" onclick="addSalesRow()">+ 추가</button>
-        <button class="btn-danger btn-sm" onclick="clearSales()">초기화</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn-primary" onclick="importOnlineSalesProducts()" style="padding:5px 12px;font-size:12px">제품 불러오기</button>
+        <button class="btn-primary" onclick="addOnlineSalesRow()" style="padding:5px 12px;font-size:12px">+ 행 추가</button>
+        <button class="btn-action-sub" onclick="exportOnlineSalesExcel()" style="padding:5px 12px;font-size:12px">엑셀 내보내기</button>
+        <button class="btn-setting" onclick="archiveOnlineSales()" style="padding:5px 12px;font-size:12px;background:#1D9E75;color:#FFF;border:none;border-radius:6px;cursor:pointer">월 마감</button>
       </div>
     </div>
-    <div class="section-body">
-      <div style="background:#E6F1FB;border-radius:6px;padding:8px 14px;font-size:12px;color:#0C447C;margin-bottom:12px">
-        수수료율은 <strong>설정 > 수수료 설정</strong>에서 통합 관리됩니다.
+    <div class="section-body" style="padding:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #F0F2F7;flex-wrap:wrap">
+        <select id="os-month-select" class="input" style="width:180px;height:30px;font-size:12px;font-weight:600" onchange="loadOnlineSalesMonth(this.value)"></select>
+        <div style="width:1px;height:20px;background:#DDE1EB"></div>
+        <div id="os-promo-filters" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+        <div style="width:1px;height:20px;background:#DDE1EB"></div>
+        <span id="os-archive-hint" style="font-size:10px;color:#9BA3B2"></span>
       </div>
-      <div class="table-wrap">
-        <table class="data-table" id="sales-table">
+      <div style="overflow-x:auto">
+        <table class="data-table" id="os-table" style="width:100%">
           <thead>
             <tr>
-              <th style="width:40px"></th>
-              <th>코드</th><th>모델명</th><th>재고</th><th>매입원가</th>
-              <th style="background:#E6F1FB;color:#0C447C">스토어팜 판매가</th>
-              <th style="background:#E6F1FB;color:#0C447C">이익</th>
-              <th style="background:#E6F1FB;color:#0C447C">이익률</th>
-              <th style="background:#FAEEDA;color:#412402">오픈마켓 판매가</th>
-              <th style="background:#FAEEDA;color:#412402">이익</th>
-              <th style="background:#FAEEDA;color:#412402">이익률</th>
+              <th style="width:70px">날짜</th>
+              <th style="width:60px">코드</th>
+              <th style="min-width:160px">모델</th>
+              <th style="width:60px" class="center">재고</th>
+              <th style="width:80px">업체명</th>
+              <th style="width:90px" class="num">판매가</th>
+              <th style="width:90px" class="num">프로모션원가</th>
+              <th style="width:90px;background:rgba(29,158,117,0.08);color:#0F6E56" class="num">스토어팜</th>
+              <th style="width:70px;background:rgba(29,158,117,0.08);color:#0F6E56" class="num">이익</th>
+              <th style="width:50px;background:rgba(29,158,117,0.08);color:#0F6E56" class="center">이익률</th>
+              <th style="width:90px;background:rgba(24,95,165,0.08);color:#0C447C" class="num">오픈마켓</th>
+              <th style="width:70px;background:rgba(24,95,165,0.08);color:#0C447C" class="num">이익</th>
+              <th style="width:50px;background:rgba(24,95,165,0.08);color:#0C447C" class="center">이익률</th>
+              <th style="min-width:140px">프로모션</th>
+              <th style="width:40px" class="center"></th>
             </tr>
           </thead>
-          <tbody id="sales-body"></tbody>
+          <tbody id="os-body"></tbody>
         </table>
       </div>
+      <div id="os-summary" style="display:flex;gap:8px;padding:8px 12px;border-top:1px solid #DDE1EB"></div>
     </div>
   </div>
+  <!-- 기존 호환용 hidden -->
+  <div style="display:none"><table><tbody id="sales-body"></tbody></table></div>
   </div><!-- /sales-sub-manage -->
 
   <div id="sales-sub-calc" style="display:none">
