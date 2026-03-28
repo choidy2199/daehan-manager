@@ -610,6 +610,8 @@ function renderCatalog() {
     filtered = filtered.filter(function(p) { return !!p.discontinued; });
   } else if (catalogFilterMode === 'nocode') {
     filtered = filtered.filter(function(p) { return !p.manageCode || p.manageCode.trim() === '' || p.manageCode === '-'; });
+  } else if (catalogFilterMode === 'nosku') {
+    filtered = filtered.filter(function(p) { return !p.code || p.code.trim() === '' || p.code === '-'; });
   }
 
   // Sort: active items first (by subcategory), discontinued at bottom
@@ -672,6 +674,15 @@ function renderCatalog() {
       <td class="num" style="background:${isD ? 'transparent' : '#F8FBFF'}">${fmt(p.priceNaver)}${isD ? '' : marginBadge(p.priceNaver, p.cost, DB.settings.naverFee || 0.0663)}</td>
       <td class="num" style="background:${isD ? 'transparent' : '#FEFCF5'}">${fmt(p.priceOpen)}${isD ? '' : marginBadge(p.priceOpen, p.cost, p.category === '파워툴' ? (DB.settings.openElecFee || 0.13) : (DB.settings.openHandFee || 0.176))}</td>
       <td class="center">${stockBadge}</td>
+      <td class="center">${(function(){
+        var s = p.ttiStock || '';
+        if (!s || s === '-') return '<svg width="18" height="18" viewBox="0 0 18 18"><rect x="4" y="8" width="10" height="2" rx="1" fill="#B4B2A9"/></svg>';
+        s = s.trim();
+        if (s === '적정' || s === 'O') return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6" fill="#4A90D9"/></svg>';
+        if (s === '임박' || s === '세모') return '<svg width="18" height="18" viewBox="0 0 18 18"><polygon points="9,3 15,14 3,14" fill="#F5A623"/></svg>';
+        if (s === '소진' || s === 'X') return '<svg width="18" height="18" viewBox="0 0 18 18"><line x1="4" y1="4" x2="14" y2="14" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="4" x2="4" y2="14" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round"/></svg>';
+        return '<span style="font-size:11px;color:#5A6070">' + s + '</span>';
+      })()}</td>
       <td style="text-align:left;font-size:12px;cursor:pointer;white-space:nowrap;padding-left:8px" onclick="editInDate(${idx})" title="클릭하여 입고날짜 메모 편집">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
       <td class="center" style="white-space:nowrap"><button class="btn-edit" onclick="showProductModal(${idx})">수정</button> <button class="btn-danger btn-sm" onclick="deleteProduct(${idx})" style="padding:2px 6px;font-size:11px">삭제</button> <button class="btn-edit" onclick="toggleDiscontinued(${idx},${!isD})" style="padding:2px 6px;font-size:11px;${isD ? 'background:#CC2222' : 'background:#9BA3B2'}">${isD ? '단종됨' : '단종'}</button></td>
     </tr>`;
@@ -681,7 +692,7 @@ function renderCatalog() {
   let html = '';
   active.slice(0, 500).forEach(p => { html += buildRow(p); });
   if (discontinued.length > 0) {
-    html += `<tr class="discontinued-divider"><td colspan="20">단종 품목 (${discontinued.length}건)</td></tr>`;
+    html += `<tr class="discontinued-divider"><td colspan="21">단종 품목 (${discontinued.length}건)</td></tr>`;
     html += discontinued.slice(0, 200).map(buildRow).join('');
   }
   body.innerHTML = html;
@@ -704,7 +715,7 @@ function renderCatalog() {
   `;
 
   if (!filtered.length && !DB.products.length) {
-    body.innerHTML = '<tr><td colspan="20"><div class="empty-state"><p>제품 데이터가 없습니다</p><button class="btn-primary" onclick="showImportModal()">📥 엑셀 가져오기</button> <button class="btn-primary" style="margin-left:8px" onclick="showProductModal()">+ 제품 추가</button></div></td></tr>';
+    body.innerHTML = '<tr><td colspan="21"><div class="empty-state"><p>제품 데이터가 없습니다</p><button class="btn-primary" onclick="showImportModal()">📥 엑셀 가져오기</button> <button class="btn-primary" style="margin-left:8px" onclick="showProductModal()">+ 제품 추가</button></div></td></tr>';
   }
 
   initColumnResize('catalog-table');
@@ -717,6 +728,7 @@ function renderCatalog() {
     var outstock = all.filter(function(p) { var s = findStock(p.code); return s != null && s <= 0; });
     var disc = all.filter(function(p) { return !!p.discontinued; });
     var nocode = all.filter(function(p) { return !p.manageCode || p.manageCode.trim() === '' || p.manageCode === '-'; });
+    var nosku = all.filter(function(p) { return !p.code || p.code.trim() === '' || p.code === '-'; });
 
     var tabs = document.querySelectorAll('#catalog-filter-tabs .sub-tab');
     if (tabs[0]) tabs[0].textContent = '전체제품(' + all.length + ')';
@@ -724,6 +736,7 @@ function renderCatalog() {
     if (tabs[2]) tabs[2].textContent = '재고없음(' + outstock.length + ')';
     if (tabs[3]) tabs[3].textContent = '단종(' + disc.length + ')';
     if (tabs[4]) tabs[4].textContent = '관리코드없음(' + nocode.length + ')';
+    if (tabs[5]) tabs[5].textContent = '코드없음(' + nosku.length + ')';
   })();
 }
 
@@ -2853,6 +2866,7 @@ function importExcel() {
 
         var updatedCount = 0;
         var addedCount = 0;
+        var changes = [];
         const dataStart = headerRow + 2;
         for (let i = dataStart; i < data.length; i++) {
           const row = data[i];
@@ -2889,6 +2903,12 @@ function importExcel() {
             var existIdx = DB.products.findIndex(function(p) { return String(p.code) === String(code); });
             if (existIdx >= 0) {
               var exist = DB.products[existIdx];
+              if (exist.orderNum && newItem.orderNum && String(exist.orderNum) !== String(newItem.orderNum)) {
+                changes.push('순번 변경: ' + exist.model + ' (' + exist.orderNum + ' → ' + newItem.orderNum + ')');
+              }
+              if (exist.ttiNum && newItem.ttiNum && String(exist.ttiNum) !== String(newItem.ttiNum)) {
+                changes.push('TTI# 변경: ' + exist.model + ' (' + exist.ttiNum + ' → ' + newItem.ttiNum + ')');
+              }
               Object.keys(newItem).forEach(function(key) {
                 if (key === 'priceA' || key === 'priceRetail' || key === 'priceNaver' || key === 'priceOpen') return;
                 if (newItem[key] !== '' && newItem[key] !== 0 && newItem[key] !== null) {
@@ -2919,6 +2939,7 @@ function importExcel() {
         if (importMode === 'merge') {
           imported.products = updatedCount + addedCount;
           imported.mergeInfo = '업데이트: ' + updatedCount + '건, 신규추가: ' + addedCount + '건';
+          if (changes.length > 0) imported.changes = changes;
         } else {
           imported.products = DB.products.length;
         }
@@ -3014,6 +3035,7 @@ function importExcel() {
             </tr>`).join('')}
           </table>
           ${imported.mergeInfo ? '<div style="margin-top:8px;color:#185FA5;font-weight:600">📋 ' + imported.mergeInfo + '</div>' : ''}
+          ${imported.changes && imported.changes.length > 0 ? '<div style="margin-top:8px;padding:8px 12px;background:#FAEEDA;border-radius:6px;font-size:12px;color:#412402"><div style="font-weight:600;margin-bottom:4px">⚠ 순번/TTI# 변경 감지 (' + imported.changes.length + '건)</div>' + imported.changes.map(function(c){ return '<div>• ' + c + '</div>'; }).join('') + '</div>' : ''}
           <div style="margin-top:8px;font-size:11px;color:#5A6070">${imported.headerInfo ? '📊 ' + imported.headerInfo + ' | ' : ''}⚙ 분기 ${(DB.settings.quarterDC*100).toFixed(1)}% | 년간 ${(DB.settings.yearDC*100).toFixed(1)}% | 네이버 ${(DB.settings.naverFee*100).toFixed(1)}% | 오픈전동 ${(DB.settings.openElecFee*100).toFixed(1)}%</div>`;
       }
 
