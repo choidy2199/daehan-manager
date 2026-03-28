@@ -2470,7 +2470,106 @@ function showSettingsModal() {
   document.getElementById('set-mk-open-hand').value = s.mkOpenHand || 0.5;
   document.getElementById('settings-modal').classList.add('show');
 }
-function closeSettingsModal() { document.getElementById('settings-modal').classList.remove('show'); }
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.remove('show');
+  switchSettingsTab('settings');
+}
+
+// ======================== 설정 모달 탭 전환 ========================
+function switchSettingsTab(tab) {
+  document.getElementById('settings-tab-settings').style.display = tab === 'settings' ? '' : 'none';
+  document.getElementById('settings-tab-datamgmt').style.display = tab === 'datamgmt' ? '' : 'none';
+  document.getElementById('stab-settings').classList.toggle('active', tab === 'settings');
+  document.getElementById('stab-datamgmt').classList.toggle('active', tab === 'datamgmt');
+  if (tab === 'datamgmt') updateDataMgmtCounts();
+}
+
+function updateDataMgmtCounts() {
+  var counts = {
+    products: DB.products.length,
+    inventory: DB.inventory.length,
+    promotions: DB.promotions.length,
+    orders: (DB.orders.elec || []).length + (DB.orders.hand || []).length + (DB.orders.pack || []).length,
+    orderHistory: (typeof orderHistory !== 'undefined' ? orderHistory.length : 0) + (typeof poHistory !== 'undefined' ? poHistory.length : 0),
+    general: (typeof genProducts !== 'undefined' ? genProducts.length : 0),
+    sales: (typeof salesItems !== 'undefined' ? salesItems.length : 0),
+    estimates: (typeof estimates !== 'undefined' ? estimates.length : 0),
+    setbun: (typeof setbunItems !== 'undefined' ? setbunItems.length : 0),
+    settings: '현재값',
+    ui: '컬럼너비'
+  };
+  Object.keys(counts).forEach(function(k) {
+    var el = document.getElementById('dm-cnt-' + k);
+    if (el) el.textContent = typeof counts[k] === 'number' ? counts[k] + '건' : counts[k];
+  });
+}
+
+function executeDataReset() {
+  var checks = document.querySelectorAll('#data-mgmt-items input[type="checkbox"]:checked');
+  if (!checks.length) { toast('초기화할 항목을 선택하세요'); return; }
+  var names = Array.from(checks).map(function(c) { return c.parentElement.querySelector('.dm-label').textContent; });
+  if (!confirm('다음 항목을 초기화합니다:\n\n• ' + names.join('\n• ') + '\n\n정말 삭제하시겠습니까?')) return;
+  if (!confirm('⚠️ 복구할 수 없습니다. 정말 진행하시겠습니까?')) return;
+
+  checks.forEach(function(c) {
+    var v = c.value;
+    if (v === 'products') { DB.products = []; save(KEYS.products, DB.products); }
+    if (v === 'inventory') { DB.inventory = []; save(KEYS.inventory, DB.inventory); }
+    if (v === 'promotions') {
+      DB.promotions = []; save(KEYS.promotions, DB.promotions);
+      localStorage.removeItem('mw_promo_archive');
+      localStorage.removeItem('mw_promo_current_month');
+    }
+    if (v === 'orders') {
+      DB.orders = { elec: [], hand: [], pack: [] }; save(KEYS.orders, DB.orders);
+      localStorage.removeItem('mw_po_orders');
+      localStorage.removeItem('mw_spot_orders');
+      localStorage.removeItem('mw_order_settings');
+      if (typeof poOrderData !== 'undefined') poOrderData = [];
+      if (typeof spotOrderData !== 'undefined') spotOrderData = [];
+    }
+    if (v === 'orderHistory') {
+      if (typeof orderHistory !== 'undefined') { orderHistory = []; localStorage.setItem('mw_order_history', '[]'); }
+      if (typeof poHistory !== 'undefined') { poHistory = []; localStorage.setItem('mw_promo_order_history', '[]'); }
+    }
+    if (v === 'general') {
+      if (typeof genProducts !== 'undefined') { genProducts.length = 0; localStorage.setItem('mw_gen_products', '[]'); }
+    }
+    if (v === 'sales') {
+      if (typeof salesItems !== 'undefined') { salesItems.length = 0; localStorage.setItem('mw_sales_items', '[]'); }
+    }
+    if (v === 'estimates') {
+      if (typeof estimates !== 'undefined') { estimates.length = 0; localStorage.setItem('mw_estimates', '[]'); }
+    }
+    if (v === 'setbun') {
+      if (typeof setbunItems !== 'undefined') { setbunItems.length = 0; localStorage.setItem('mw_setbun_items', '[]'); }
+      if (typeof partsPrices !== 'undefined') { partsPrices = {}; localStorage.setItem('mw_parts_prices', '{}'); }
+    }
+    if (v === 'settings') {
+      DB.settings = { quarterDC: 0.04, yearDC: 0.018, vat: 0.1, naverFee: 0.059, openElecFee: 0.13, openHandFee: 0.176, domaeFee: 0.01, mkDomae: 1, mkRetail: 15, mkNaver: 17, mkOpen: 27, promoFee1: 5.8, promoFee2: 3.6, arPromos: [{name:'',rate:0},{name:'',rate:0},{name:'',rate:0},{name:'',rate:0}], volPromos: [{name:'',rate:0},{name:'',rate:0},{name:'',rate:0},{name:'',rate:0}] };
+      save(KEYS.settings, DB.settings);
+      DB.rebate = []; save(KEYS.rebate, DB.rebate);
+    }
+    if (v === 'ui') {
+      Object.keys(localStorage).forEach(function(k) {
+        if (k.startsWith('mw_colwidths_')) localStorage.removeItem(k);
+      });
+    }
+  });
+  toast('선택 항목 초기화 완료');
+  updateDataMgmtCounts();
+  checks.forEach(function(c) { c.checked = false; });
+}
+
+function executeFullReset() {
+  if (!confirm('⚠️ 모든 데이터가 삭제됩니다.\n엑셀 백업을 하셨습니까?')) return;
+  if (!confirm('정말 전체 초기화를 진행하시겠습니까?\n이 작업은 복구할 수 없습니다.')) return;
+  var input = prompt('전체 초기화를 진행하려면 "초기화"를 입력하세요:');
+  if (input !== '초기화') { toast('초기화가 취소되었습니다'); return; }
+  localStorage.clear();
+  toast('전체 초기화 완료. 새로고침합니다...');
+  setTimeout(function() { location.reload(); }, 1000);
+}
 
 // ======================== 커머셜 프로모션 설정 ========================
 const ORDER_SETTINGS_KEY = 'mw_order_settings';

@@ -797,7 +797,11 @@
       <h3>⚙ 할인율·수수료 설정</h3>
       <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
     </div>
-    <div class="modal-body" style="padding:16px 20px;max-height:calc(100vh - 160px);overflow-y:auto">
+    <div style="display:flex;gap:0;border-bottom:2px solid #DDE1EB;margin:0 20px">
+      <button id="stab-settings" class="settings-tab active" onclick="switchSettingsTab('settings')">설정</button>
+      <button id="stab-datamgmt" class="settings-tab" onclick="switchSettingsTab('datamgmt')">데이터 관리</button>
+    </div>
+    <div class="modal-body" id="settings-tab-settings" style="padding:16px 20px;max-height:calc(100vh - 200px);overflow-y:auto">
 
       <!-- 섹션1: 밀워키 리베이트 -->
       <div style="margin-bottom:16px">
@@ -859,6 +863,33 @@
         온라인 판매채널 수수료는 <strong>설정 > 수수료 설정</strong>에서 통합 관리합니다.
       </div>
 
+    </div>
+    <div class="modal-body" id="settings-tab-datamgmt" style="display:none;padding:16px 20px;max-height:calc(100vh - 200px);overflow-y:auto">
+      <div style="background:#FAEEDA;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#412402">
+        ⚠️ 초기화하면 해당 데이터가 영구 삭제됩니다. 엑셀 백업 후 진행하세요.
+      </div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:#1A1D23">항목별 초기화</div>
+      <div id="data-mgmt-items" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        <label class="dm-row"><input type="checkbox" value="products"><span class="dm-label">밀워키 제품 데이터</span><span class="dm-badge" id="dm-cnt-products"></span></label>
+        <label class="dm-row"><input type="checkbox" value="inventory"><span class="dm-label">재고 데이터</span><span class="dm-badge" id="dm-cnt-inventory"></span></label>
+        <label class="dm-row"><input type="checkbox" value="promotions"><span class="dm-label">프로모션 데이터</span><span class="dm-badge" id="dm-cnt-promotions"></span></label>
+        <label class="dm-row"><input type="checkbox" value="orders"><span class="dm-label">발주 데이터</span><span class="dm-badge" id="dm-cnt-orders"></span></label>
+        <label class="dm-row"><input type="checkbox" value="orderHistory"><span class="dm-label">발주 이력 (원가P)</span><span class="dm-badge" id="dm-cnt-orderHistory"></span></label>
+        <label class="dm-row"><input type="checkbox" value="general"><span class="dm-label">일반제품</span><span class="dm-badge" id="dm-cnt-general"></span></label>
+        <label class="dm-row"><input type="checkbox" value="sales"><span class="dm-label">온라인판매 항목</span><span class="dm-badge" id="dm-cnt-sales"></span></label>
+        <label class="dm-row"><input type="checkbox" value="estimates"><span class="dm-label">견적서</span><span class="dm-badge" id="dm-cnt-estimates"></span></label>
+        <label class="dm-row"><input type="checkbox" value="setbun"><span class="dm-label">세트분해 / 배터리 시세</span><span class="dm-badge" id="dm-cnt-setbun"></span></label>
+        <label class="dm-row"><input type="checkbox" value="settings"><span class="dm-label">설정값 (리베이트·수수료·마크업)</span><span class="dm-badge" id="dm-cnt-settings"></span></label>
+        <label class="dm-row"><input type="checkbox" value="ui"><span class="dm-label">UI 설정 (컬럼 너비)</span><span class="dm-badge" id="dm-cnt-ui"></span></label>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn-danger" onclick="executeDataReset()">선택 항목 초기화</button>
+        <span style="font-size:12px;color:#5A6070">체크한 항목만 삭제됩니다</span>
+      </div>
+      <hr style="margin:20px 0;border:none;border-top:1px solid #DDE1EB">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;color:#CC2222">전체 초기화</div>
+      <div style="font-size:12px;color:#5A6070;margin-bottom:12px">모든 데이터를 삭제하고 앱을 초기 상태로 되돌립니다.</div>
+      <button class="btn-danger" onclick="executeFullReset()" style="background:#791F1F">🗑 전체 초기화 (복구 불가)</button>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeSettingsModal()">취소</button>
