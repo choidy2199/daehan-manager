@@ -2046,19 +2046,23 @@ function renderOnlineSales() {
     if (editable) {
       html += '<td><input class="os-input os-input-num" value="'+(item.naverPrice?item.naverPrice.toLocaleString():'')+'" onchange="updateOsNumField('+ri+',\'naverPrice\',this.value)" style="width:80px"></td>';
     } else { html += '<td class="num">'+(item.naverPrice?item.naverPrice.toLocaleString():'-')+'</td>'; }
-    html += '<td class="num '+pCls(naver.profit)+'" style="font-weight:600">'+(item.naverPrice?pSign(naver.profit)+naver.profit.toLocaleString():'-')+'</td>';
-    html += '<td class="center '+pCls(naver.rate)+'">'+(item.naverPrice?naver.rate.toFixed(1)+'%':'-')+'</td>';
+    html += '<td class="center">';
+    if (item.naverPrice && costP) { html += '<div style="font-weight:600" class="'+pCls(naver.profit)+'">'+pSign(naver.profit)+naver.profit.toLocaleString()+'</div><div style="font-size:10px;color:#CC2222">'+naver.rate.toFixed(1)+'%</div>'; }
+    else { html += '-'; }
+    html += '</td>';
     if (editable) {
       html += '<td><input class="os-input os-input-num" value="'+(item.openPrice?item.openPrice.toLocaleString():'')+'" onchange="updateOsNumField('+ri+',\'openPrice\',this.value)" style="width:80px"></td>';
     } else { html += '<td class="num">'+(item.openPrice?item.openPrice.toLocaleString():'-')+'</td>'; }
-    html += '<td class="num '+pCls(open.profit)+'" style="font-weight:600">'+(item.openPrice?pSign(open.profit)+open.profit.toLocaleString():'-')+'</td>';
-    html += '<td class="center '+pCls(open.rate)+'">'+(item.openPrice?open.rate.toFixed(1)+'%':'-')+'</td>';
+    html += '<td class="center">';
+    if (item.openPrice && costP) { html += '<div style="font-weight:600" class="'+pCls(open.profit)+'">'+pSign(open.profit)+open.profit.toLocaleString()+'</div><div style="font-size:10px;color:#CC2222">'+open.rate.toFixed(1)+'%</div>'; }
+    else { html += '-'; }
+    html += '</td>';
     html += '<td style="text-align:left"><span class="os-promo-badge">'+(item.promoName||'-')+'</span></td>';
     if (editable) { html += '<td class="center" style="white-space:nowrap"><button class="btn-primary" onclick="insertOsRowAfter('+ri+')" style="padding:2px 6px;font-size:10px;margin-right:3px">+</button><button class="os-del-btn" onclick="removeOsRow('+ri+')">✕</button></td>'; }
     else { html += '<td></td>'; }
     html += '</tr>';
   });
-  if (!filtered.length) html = '<tr><td colspan="15"><div class="empty-state"><p>제품을 추가하세요</p></div></td></tr>';
+  if (!filtered.length) html = '<tr><td colspan="13"><div class="empty-state"><p>제품을 추가하세요</p></div></td></tr>';
   body.innerHTML = html;
   renderOsSummary(filtered, naverFee, openFee);
   initColumnResize('os-table');
