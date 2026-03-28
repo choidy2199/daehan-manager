@@ -4499,8 +4499,99 @@ function newEstimate() {
   document.getElementById('est-client').value = '';
   document.getElementById('est-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('est-current-no').textContent = genEstNo();
+  estSelectedClient = null;
+  var cInfo = document.getElementById('est-client-info');
+  if (cInfo) { cInfo.style.display = 'none'; cInfo.style.background = '#F4F6FA'; cInfo.innerHTML = ''; }
   renderEstimateItems();
 }
+
+// ======================== 견적서 거래처 자동완성 ========================
+var estSelectedClient = null;
+
+function searchClientAC(val) {
+  var list = document.getElementById('client-ac-list');
+  if (!list) return;
+  if (!val || val.length < 1) { list.style.display = 'none'; return; }
+  var q = String(val).toLowerCase();
+  var results = (typeof clientData !== 'undefined' ? clientData : []).filter(function(c) {
+    return String(c.name || '').toLowerCase().includes(q) ||
+           String(c.bizNo || '').replace(/-/g, '').includes(q.replace(/-/g, '')) ||
+           String(c.ceo || '').toLowerCase().includes(q) ||
+           String(c.code || '').toLowerCase().includes(q);
+  }).slice(0, 8);
+  var html = '';
+  results.forEach(function(c) {
+    var idx = clientData.indexOf(c);
+    html += '<div class="client-ac-item" data-idx="' + idx + '" style="padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #F0F2F7">';
+    html += '<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;background:#E1F5EE;color:#085041;white-space:nowrap">등록</span>';
+    html += '<span style="font-weight:600;color:#1A1D23">' + (c.name || '') + '</span>';
+    html += '<span style="font-size:10px;color:#5A6070">' + (c.bizNo || '') + '</span>';
+    html += '<span style="font-size:10px;color:#9BA3B2">' + (c.ceo || '') + '</span>';
+    html += '<span style="font-size:10px;color:#9BA3B2">' + (c.phone || c.mobile || '') + '</span>';
+    html += '</div>';
+  });
+  html += '<div class="client-ac-new" style="padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;background:#FAFBFC;border-top:2px solid #DDE1EB">';
+  html += '<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;background:#E6F1FB;color:#0C447C;white-space:nowrap">신규</span>';
+  html += '<span style="color:#185FA5;font-weight:500">"' + val + '"</span>';
+  html += '<span style="font-size:10px;color:#9BA3B2">← 미등록 거래처로 직접 입력</span>';
+  html += '</div>';
+  list.innerHTML = html;
+  list.style.display = 'block';
+  list.querySelectorAll('.client-ac-item').forEach(function(el) {
+    el.onmousedown = function(e) {
+      e.preventDefault();
+      var idx = parseInt(el.dataset.idx);
+      var c = clientData[idx];
+      if (!c) return;
+      document.getElementById('est-client').value = c.name;
+      estSelectedClient = c;
+      showEstClientInfo(c);
+      list.style.display = 'none';
+    };
+  });
+  var newBtn = list.querySelector('.client-ac-new');
+  if (newBtn) {
+    newBtn.onmousedown = function(e) {
+      e.preventDefault();
+      estSelectedClient = null;
+      showEstClientUnreg(val);
+      list.style.display = 'none';
+    };
+  }
+}
+
+function showEstClientInfo(c) {
+  var info = document.getElementById('est-client-info');
+  if (!info) return;
+  info.style.display = 'flex';
+  info.style.background = '#F4F6FA';
+  info.innerHTML =
+    '<div><span style="color:#5A6070">상호: </span><span style="font-weight:500">' + (c.name || '') + '</span>' +
+    '<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;background:#E1F5EE;color:#085041;margin-left:4px">등록</span></div>' +
+    '<div><span style="color:#5A6070">사업자: </span><span>' + (c.bizNo || '-') + '</span></div>' +
+    '<div><span style="color:#5A6070">대표: </span><span>' + (c.ceo || '-') + '</span></div>' +
+    '<div><span style="color:#5A6070">전화: </span><span>' + (c.phone || c.mobile || '-') + '</span></div>' +
+    '<div><span style="color:#5A6070">주소: </span><span>' + (c.address || '-') + '</span></div>' +
+    '<div><span style="color:#5A6070">이메일: </span><span>' + (c.email || '-') + '</span></div>';
+}
+
+function showEstClientUnreg(name) {
+  var info = document.getElementById('est-client-info');
+  if (!info) return;
+  info.style.display = 'flex';
+  info.style.background = '#FFF5F5';
+  info.innerHTML =
+    '<span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;background:#FCEBEB;color:#791F1F">미등록</span>' +
+    '<span style="color:#5A6070;font-size:11px">"' + name + '" — 설정 > 거래처 등록에서 등록하면 자동 연결됩니다</span>';
+}
+
+document.addEventListener('mousedown', function(e) {
+  var wrap = document.getElementById('client-ac-wrap');
+  var list = document.getElementById('client-ac-list');
+  if (wrap && list && !wrap.contains(e.target)) {
+    list.style.display = 'none';
+  }
+});
 
 function openEstimate(idx) {
   const e = estimates[idx];

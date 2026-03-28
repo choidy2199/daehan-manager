@@ -771,13 +771,19 @@
       <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
         <div class="form-field">
           <label class="label">공급받는자 (거래처)</label>
-          <input class="input" id="est-client" placeholder="거래처명 입력">
+          <div style="position:relative" id="client-ac-wrap">
+            <input class="input" id="est-client" placeholder="거래처명 또는 사업자번호 검색..." autocomplete="off"
+              oninput="searchClientAC(this.value)"
+              onfocus="if(this.value) searchClientAC(this.value)">
+            <div id="client-ac-list" style="display:none;position:absolute;top:100%;left:0;width:100%;max-height:220px;overflow-y:auto;background:white;border:1px solid var(--tl-border);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.12);z-index:300;font-size:12px"></div>
+          </div>
         </div>
         <div class="form-field">
           <label class="label">견적 날짜</label>
           <input class="input" id="est-date" type="date">
         </div>
       </div>
+      <div id="est-client-info" style="display:none;background:#F4F6FA;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11px;gap:16px;flex-wrap:wrap"></div>
 
       <div class="table-scroll" style="overflow-x:auto">
         <table class="data-table" id="est-table">
