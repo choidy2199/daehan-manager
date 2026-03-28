@@ -4379,6 +4379,18 @@ function genEstNo() {
 }
 
 // Helper: find product from both 밀워키 + 일반제품
+function getGenTierPrice(genProduct, qty) {
+  if (!genProduct) return { price: 0, tier: '' };
+  var q = parseInt(qty) || 0;
+  if (genProduct.outQty && genProduct.outPrice && q >= genProduct.outQty) {
+    return { price: genProduct.outPrice, tier: 'OUT' };
+  }
+  if (genProduct.inQty && genProduct.inPrice && q >= genProduct.inQty) {
+    return { price: genProduct.inPrice, tier: 'IN' };
+  }
+  return { price: genProduct.priceA || genProduct.cost || 0, tier: '' };
+}
+
 function findAnyProduct(code) {
   const mw = findProduct(code);
   if (mw) return { ...mw, _source: 'milwaukee' };
@@ -4413,6 +4425,17 @@ function searchEstProducts(val) {
     const margin = aPrice > 0 && cost > 0 ? aPrice - cost : 0;
     const marginRate = aPrice > 0 && cost > 0 ? ((margin / aPrice) * 100).toFixed(1) : '-';
     const marginDisplay = margin > 0 ? `${fmt(margin)} (${marginRate}%)` : (margin < 0 ? `<span style="color:#CC2222">${fmt(margin)} (${marginRate}%)</span>` : '-');
+    // IN/OUT/파레트 셀
+    var inCell, outCell, palletCell;
+    if (p._source === 'general') {
+      inCell = (p.inQty && p.inPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:8px;color:#5A6070">' + p.inQty + '개</span><span style="font-size:10px;font-weight:600;color:#185FA5">' + p.inPrice.toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB;font-size:10px">-</span>';
+      outCell = (p.outQty && p.outPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:8px;color:#5A6070">' + p.outQty + '개</span><span style="font-size:10px;font-weight:600;color:#185FA5">' + p.outPrice.toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB;font-size:10px">-</span>';
+      palletCell = p.palletQty ? '<span style="font-size:10px;color:#5A6070">' + p.palletQty.toLocaleString() + '개</span>' : '<span style="color:#DDE1EB;font-size:10px">-</span>';
+    } else {
+      inCell = '<span style="color:#DDE1EB;font-size:10px">-</span>';
+      outCell = '<span style="color:#DDE1EB;font-size:10px">-</span>';
+      palletCell = '<span style="color:#DDE1EB;font-size:10px">-</span>';
+    }
     return `<tr>
       <td class="center"><button class="btn-edit" onclick="addEstimateProduct('${p.code}')">견적서 추가</button></td>
       <td class="center">${p.code} ${srcBadge}</td>
@@ -4421,6 +4444,9 @@ function searchEstProducts(val) {
       <td class="num" style="color:#185FA5;font-weight:700">${fmt(aPrice)}</td>
       <td class="num">${naverPrice ? fmt(naverPrice) : '-'}</td>
       <td class="num">${openPrice ? fmt(openPrice) : '-'}</td>
+      <td class="center">${inCell}</td>
+      <td class="center">${outCell}</td>
+      <td class="center">${palletCell}</td>
       <td class="num" style="color:#1D9E75">${cost ? fmt(cost) : '-'}</td>
       <td class="num" style="font-size:11px">${marginDisplay}</td>
       <td class="center">-</td>
@@ -4512,6 +4538,13 @@ function removeEstimateItem(idx) {
 
 function onEstQtyChange(idx, val) {
   currentEstItems[idx].qty = parseInt(val) || 0;
+  // 일반제품이면 수량별 자동 단가 적용
+  var p = findAnyProduct(currentEstItems[idx].code);
+  if (p && p._source === 'general') {
+    var tier = getGenTierPrice(p, currentEstItems[idx].qty);
+    currentEstItems[idx].customPrice = tier.price;
+    currentEstItems[idx]._tier = tier.tier;
+  }
   renderEstimateItems();
 }
 
@@ -4537,7 +4570,7 @@ function renderEstimateItems() {
       <td class="center" style="font-weight:500">${p ? p.model : item.model}</td>
       <td class="center" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p ? p.description : item.description}</td>
       <td class="center"><input type="number" value="${qty || ''}" onchange="onEstQtyChange(${i},this.value)" min="0" style="width:60px;text-align:center"></td>
-      <td class="num"><input type="number" value="${aPrice || ''}" onchange="onEstPriceChange(${i},this.value)" min="0" style="width:80px;text-align:right;font-size:12px"></td>
+      <td class="num"><input type="number" value="${aPrice || ''}" onchange="onEstPriceChange(${i},this.value)" min="0" style="width:80px;text-align:right;font-size:12px">${item._tier === 'IN' ? '<span style="font-size:8px;background:#E6F1FB;color:#0C447C;padding:1px 4px;border-radius:2px;font-weight:600;margin-left:4px">IN</span>' : (item._tier === 'OUT' ? '<span style="font-size:8px;background:#E6F1FB;color:#0C447C;padding:1px 4px;border-radius:2px;font-weight:600;margin-left:4px">OUT</span>' : '')}</td>
       <td class="num" style="font-weight:600">${amount ? fmt(amount) : '-'}</td>
       <td class="num" style="color:#5A6070">${amount ? fmt(vat) : '-'}</td>
       <td class="center"><input value="${item.memo || ''}" onchange="onEstMemoChange(${i},this.value)" style="width:60px;font-size:12px;text-align:center"></td>
@@ -4557,6 +4590,7 @@ function renderEstimateItems() {
 
 function onEstPriceChange(idx, val) {
   currentEstItems[idx].customPrice = parseInt(val) || 0;
+  currentEstItems[idx]._tier = '';
   renderEstimateItems();
 }
 
