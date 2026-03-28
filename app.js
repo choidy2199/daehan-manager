@@ -257,7 +257,7 @@ function switchTab(tab) {
   if (tab === 'setbun') renderSetbun();
   if (tab === 'estimate') renderEstimateList();
   if (tab === 'general') renderGenProducts();
-  if (tab === 'manage') switchManageSub('fee');
+  if (tab === 'manage') loadFeeSettings();
 }
 
 function switchOrderMain(type) {
@@ -4424,15 +4424,6 @@ function init() {
     const recentPo = poHistory.filter(r => (now - new Date(r.date).getTime()) < weekMs);
     if (recentPo.length) updatePoSheetButtons(true);
   })();
-}
-
-// ======================== 관리: 서브탭 전환 ========================
-function switchManageSub(type) {
-  document.querySelectorAll('.manage-tab-content').forEach(function(el) { el.style.display = 'none'; });
-  document.querySelectorAll('#manage-sub-tabs .sub-tab').forEach(function(btn) { btn.classList.remove('active'); });
-  document.getElementById('manage-' + type).style.display = 'block';
-  event.target.classList.add('active');
-  if (type === 'fee') loadFeeSettings();
 }
 
 // ======================== 관리: 수수료 설정 ========================

@@ -38,7 +38,6 @@
     </div>
     <div class="nav-divider"></div>
     <div class="nav-sector nav-sector-manage">
-      <span class="nav-sector-label label-manage">관리</span>
       <button class="nav-tab" onclick="switchTab('manage')">설정</button>
     </div>
   </div>
@@ -696,11 +695,6 @@
 
 <!-- =============== TAB 8: 관리 =============== -->
 <div id="tab-manage" class="tab-content">
-  <div class="sub-tabs" id="manage-sub-tabs">
-    <button class="sub-tab active" onclick="switchManageSub('fee')">⚙ 설정</button>
-  </div>
-
-  <div id="manage-fee" class="manage-tab-content">
   <div class="section">
     <div class="section-header">
       <span>온라인 판매채널 수수료 설정</span>
@@ -713,10 +707,10 @@
         모든 판매가는 <strong>부가세 포함</strong> 기준입니다. (매출VAT = 판매가 ÷ 11)
       </div>
 
-      <div style="max-width:640px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
 
         <!-- 네이버 스토어팜 -->
-        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px">
           <div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span style="width:8px;height:8px;border-radius:50%;background:#00C73C;display:inline-block"></span> 네이버 스토어팜
             <span style="margin-left:auto;font-size:13px;font-weight:700;color:#00C73C" id="fee-naver-total">6.63%</span>
@@ -728,75 +722,45 @@
         </div>
 
         <!-- 쿠팡 마켓플레이스 -->
-        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px">
           <div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span style="width:8px;height:8px;border-radius:50%;background:#E62341;display:inline-block"></span> 쿠팡 마켓플레이스
-            <span style="font-size:11px;font-weight:400;color:#5A6070">판매자 직접 배송 · 결제수수료 포함</span>
+            <span style="font-size:11px;font-weight:400;color:#5A6070">직접배송 · 결제수수료 포함</span>
           </div>
           <div style="display:flex;gap:12px">
             <div style="flex:1"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">판매수수료 (%)</label><input class="input" id="fee-coupang-mp" type="number" step="0.1" value="10.8"></div>
-            <div style="flex:1">
-              <label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">카테고리 프리셋</label>
-              <select class="select" onchange="applyCoupangPreset('mp',this.value)">
-                <option value="">— 직접 입력 —</option>
-                <option value="10.8">공구 / 산업용품 — 10.8%</option>
-                <option value="10.8">전동공구 / 수공구 — 10.8%</option>
-                <option value="10.0">자동차용품 — 10%</option>
-                <option value="7.8">가전 / 디지털 — 7.8%</option>
-                <option value="7.8">생활용품 — 7.8%</option>
-                <option value="10.8">스포츠 / 레저 — 10.8%</option>
-              </select>
-            </div>
+            <div style="flex:1"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">카테고리 프리셋</label><select class="select" onchange="applyCoupangPreset('mp',this.value)"><option value="">— 직접 입력 —</option><option value="10.8">공구 / 산업용품 — 10.8%</option><option value="10.0">자동차용품 — 10%</option><option value="7.8">가전 / 디지털 — 7.8%</option></select></div>
           </div>
         </div>
 
         <!-- 쿠팡 로켓그로스 -->
-        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px">
           <div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <span style="width:8px;height:8px;border-radius:50%;background:#E62341;display:inline-block"></span> 쿠팡 로켓그로스 (판매자로켓)
-            <span style="font-size:11px;font-weight:400;color:#5A6070">쿠팡 풀필먼트 · 물류비 별도</span>
+            <span style="width:8px;height:8px;border-radius:50%;background:#E62341;display:inline-block"></span> 쿠팡 로켓그로스
+            <span style="font-size:11px;font-weight:400;color:#5A6070">풀필먼트 · 물류비 별도</span>
           </div>
           <div style="display:flex;gap:12px">
             <div style="flex:1"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">판매수수료 (%)</label><input class="input" id="fee-coupang-rg" type="number" step="0.1" value="10.8"></div>
             <div style="flex:1"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">물류비 (원)</label><input class="input" id="fee-coupang-logi" type="number" step="100" value="2800"></div>
-            <div style="flex:1">
-              <label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">카테고리 프리셋</label>
-              <select class="select" onchange="applyCoupangPreset('rg',this.value)">
-                <option value="">— 직접 입력 —</option>
-                <option value="10.8">공구 / 산업용품 — 10.8%</option>
-                <option value="10.8">전동공구 / 수공구 — 10.8%</option>
-                <option value="10.0">자동차용품 — 10%</option>
-                <option value="7.8">가전 / 디지털 — 7.8%</option>
-                <option value="7.8">생활용품 — 7.8%</option>
-                <option value="10.8">스포츠 / 레저 — 10.8%</option>
-              </select>
-            </div>
+            <div style="flex:1"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">카테고리 프리셋</label><select class="select" onchange="applyCoupangPreset('rg',this.value)"><option value="">— 직접 입력 —</option><option value="10.8">공구 / 산업용품 — 10.8%</option><option value="10.0">자동차용품 — 10%</option><option value="7.8">가전 / 디지털 — 7.8%</option></select></div>
           </div>
         </div>
 
-        <!-- 오픈마켓 전동공구 -->
-        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px;margin-bottom:12px">
+        <!-- 오픈마켓 (전동+수공구 1카드) -->
+        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px">
           <div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <span style="width:8px;height:8px;border-radius:50%;background:#185FA5;display:inline-block"></span> 오픈마켓 — 전동공구
-            <span style="font-size:11px;font-weight:400;color:#5A6070">밀워키 대분류: 파워툴</span>
+            <span style="width:8px;height:8px;border-radius:50%;background:#185FA5;display:inline-block"></span> 오픈마켓
           </div>
-          <div style="max-width:200px"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">수수료 (%)</label><input class="input" id="fee-open-elec" type="number" step="0.1" value="13.0"></div>
-        </div>
-
-        <!-- 오픈마켓 수공구 -->
-        <div style="background:#fff;border:1px solid #E2E5EA;border-radius:8px;padding:16px 20px;margin-bottom:12px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <span style="width:8px;height:8px;border-radius:50%;background:#185FA5;display:inline-block"></span> 오픈마켓 — 수공구
-            <span style="font-size:11px;font-weight:400;color:#5A6070">밀워키 대분류: 수공구, 액세서리, 팩아웃</span>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">전동공구 (%)<span style="font-size:10px;color:#9BA3B2"> 파워툴</span></label><input class="input" id="fee-open-elec" type="number" step="0.1" value="13.0"></div>
+            <div style="flex:1"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">수공구 (%)<span style="font-size:10px;color:#9BA3B2"> 수공구,액세서리,팩아웃</span></label><input class="input" id="fee-open-hand" type="number" step="0.1" value="17.6"></div>
           </div>
-          <div style="max-width:200px"><label style="font-size:11px;color:#5A6070;display:block;margin-bottom:3px">수수료 (%)</label><input class="input" id="fee-open-hand" type="number" step="0.1" value="17.6"></div>
         </div>
 
       </div>
 
     </div>
   </div>
-  </div><!-- /manage-fee -->
 </div>
 
 </div><!-- /content -->
