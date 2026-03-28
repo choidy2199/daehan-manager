@@ -2041,9 +2041,7 @@ function renderOnlineSales() {
     } else { html += '<td class="num">'+(item.openPrice?item.openPrice.toLocaleString():'-')+'</td>'; }
     html += '<td class="num '+pCls(open.profit)+'" style="font-weight:600">'+(item.openPrice?pSign(open.profit)+open.profit.toLocaleString():'-')+'</td>';
     html += '<td class="center '+pCls(open.rate)+'">'+(item.openPrice?open.rate.toFixed(1)+'%':'-')+'</td>';
-    if (editable) {
-      html += '<td><input class="os-input os-input-text" value="'+(item.promoName||'')+'" onchange="updateOsField('+ri+',\'promoName\',this.value)" style="width:130px;font-size:10px"></td>';
-    } else { html += '<td style="text-align:left"><span class="os-promo-badge">'+(item.promoName||'-')+'</span></td>'; }
+    html += '<td style="text-align:left"><span class="os-promo-badge">'+(item.promoName||'-')+'</span></td>';
     if (editable) { html += '<td class="center" style="white-space:nowrap"><button class="btn-primary" onclick="insertOsRowAfter('+ri+')" style="padding:2px 6px;font-size:10px;margin-right:3px">+</button><button class="os-del-btn" onclick="removeOsRow('+ri+')">✕</button></td>'; }
     else { html += '<td></td>'; }
     html += '</tr>';
