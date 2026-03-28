@@ -1979,7 +1979,7 @@ function renderOnlineSales() {
     html += '<td><span class="os-date">'+(item.date||'-')+'</span></td>';
     html += '<td>'+(item.code||'-')+'</td>';
     if (editable) {
-      html += '<td><input class="os-input os-input-text" value="'+(item.model||'')+'" placeholder="모델명" onchange="updateOsField('+ri+',\'model\',this.value)" style="font-weight:500"></td>';
+      html += '<td><input class="os-input os-input-text" value="'+(item.model||'')+'" placeholder="코드, 모델명 검색..." oninput="showAC(this, function(code){ onOsProductSelect('+ri+',code); })" onfocus="if(this.value) showAC(this, function(code){ onOsProductSelect('+ri+',code); })" onchange="updateOsField('+ri+',\'model\',this.value)" style="font-weight:500;min-width:160px"></td>';
     } else {
       html += '<td style="text-align:left;font-weight:500">'+(item.model||'-')+'</td>';
     }
@@ -2033,6 +2033,22 @@ function renderOsSummary(data, naverFee, openFee) {
     '<div class="os-sum-card"><div class="os-sum-label">스토어팜 평균</div><div class="os-sum-val" style="color:'+(avgN>=0?'#1D9E75':'#CC2222')+'">'+avgN.toFixed(1)+'%</div></div>'+
     '<div class="os-sum-card"><div class="os-sum-label">오픈마켓 평균</div><div class="os-sum-val" style="color:'+(avgO>=0?'#1D9E75':'#CC2222')+'">'+avgO.toFixed(1)+'%</div></div>'+
     '<div class="os-sum-card"><div class="os-sum-label">재고 경고</div><div class="os-sum-val" style="color:#CC2222">'+warn+'건</div></div>';
+}
+
+function onOsProductSelect(idx, code) {
+  var p = DB.products.find(function(pr) { return String(pr.code) === String(code); });
+  if (!p) return;
+  var ec = getEffectiveCost(code);
+  var stock = findStock(code);
+  onlineSalesData[idx].code = String(code);
+  onlineSalesData[idx].model = p.model || '';
+  onlineSalesData[idx].stock = stock != null ? stock : 0;
+  onlineSalesData[idx].price = p.supplyPrice || 0;
+  onlineSalesData[idx].promoCost = ec.cost || 0;
+  if (ec.isPromo && ec.promoName) onlineSalesData[idx].promoName = ec.promoName;
+  if (!onlineSalesData[idx].date) onlineSalesData[idx].date = todayStr();
+  saveOnlineSales();
+  renderOnlineSales();
 }
 
 function updateOsField(idx,field,val){onlineSalesData[idx][field]=val;saveOnlineSales();renderOnlineSales();}
