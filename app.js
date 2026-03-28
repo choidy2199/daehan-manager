@@ -4227,12 +4227,15 @@ function renderGenProducts() {
       <td class="num">${fmt(p.priceA || 0)}</td>
       <td class="num">${fmt(p.priceNaver || 0)}${marginBadge(p.priceNaver, p.cost, DB.settings.naverFee || 0.0663)}</td>
       <td class="num">${fmt(p.priceOpen || 0)}${marginBadge(p.priceOpen, p.cost, DB.settings.openElecFee || 0.13)}</td>
+      <td class="center" style="cursor:pointer" onclick="editTierField(${idx},'in')">${(p.inQty && p.inPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:9px;color:#5A6070">' + p.inQty + '개</span><span style="font-size:12px;font-weight:600;color:#185FA5">' + (p.inPrice).toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB">-</span>'}</td>
+      <td class="center" style="cursor:pointer" onclick="editTierField(${idx},'out')">${(p.outQty && p.outPrice) ? '<div style="display:flex;flex-direction:column;align-items:center"><span style="font-size:9px;color:#5A6070">' + p.outQty + '개</span><span style="font-size:12px;font-weight:600;color:#185FA5">' + (p.outPrice).toLocaleString() + '</span></div>' : '<span style="color:#DDE1EB">-</span>'}</td>
+      <td class="center" style="cursor:pointer" onclick="editTierField(${idx},'pallet')">${p.palletQty ? '<span style="font-size:11px;color:#5A6070;font-weight:500">' + (p.palletQty).toLocaleString() + '개</span>' : '<span style="color:#DDE1EB">-</span>'}</td>
       <td><input value="${(p.memo || '').replace(/"/g,'&quot;')}" onchange="updateGenMemo(${idx},this.value)" placeholder="" style="width:100%;font-size:12px;border:1px solid #DDE1EB;border-radius:4px;padding:2px 6px;background:#fff;color:#1A1D23;text-align:left"></td>
       <td style="text-align:left;font-size:12px;cursor:pointer;white-space:nowrap;padding-left:8px" onclick="editGenInDate(${idx})">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
     </tr>`;
   }).join('');
   if (!filtered.length) {
-    body.innerHTML = '<tr><td colspan="12"><div class="empty-state"><p>일반제품이 없습니다</p><p style="font-size:12px;color:#9BA3B2">양식을 다운로드하여 업로드하거나, + 제품 추가를 이용하세요</p></div></td></tr>';
+    body.innerHTML = '<tr><td colspan="15"><div class="empty-state"><p>일반제품이 없습니다</p><p style="font-size:12px;color:#9BA3B2">양식을 다운로드하여 업로드하거나, + 제품 추가를 이용하세요</p></div></td></tr>';
   }
   document.getElementById('gen-count').textContent = `${genProducts.length}건`;
   initColumnResize('gen-table');
@@ -4268,6 +4271,31 @@ function updateGenMemo(idx, val) {
   localStorage.setItem('mw_gen_products', JSON.stringify(genProducts));
 }
 
+function editTierField(idx, type) {
+  var p = genProducts[idx];
+  if (type === 'in') {
+    var qty = prompt('IN 수량 (예: 10)', p.inQty || '');
+    if (qty === null) return;
+    var price = prompt('IN 단가 (예: 800)', p.inPrice || '');
+    if (price === null) return;
+    genProducts[idx].inQty = parseInt(String(qty).replace(/,/g,'')) || 0;
+    genProducts[idx].inPrice = parseInt(String(price).replace(/,/g,'')) || 0;
+  } else if (type === 'out') {
+    var qty = prompt('OUT 수량 (예: 120)', p.outQty || '');
+    if (qty === null) return;
+    var price = prompt('OUT 단가 (예: 750)', p.outPrice || '');
+    if (price === null) return;
+    genProducts[idx].outQty = parseInt(String(qty).replace(/,/g,'')) || 0;
+    genProducts[idx].outPrice = parseInt(String(price).replace(/,/g,'')) || 0;
+  } else if (type === 'pallet') {
+    var qty = prompt('파레트 수량 (예: 1200)', p.palletQty || '');
+    if (qty === null) return;
+    genProducts[idx].palletQty = parseInt(String(qty).replace(/,/g,'')) || 0;
+  }
+  localStorage.setItem('mw_gen_products', JSON.stringify(genProducts));
+  renderGenProducts();
+}
+
 function editGenInDate(idx) {
   const p = genProducts[idx];
   const current = p.inDate || '';
@@ -4281,10 +4309,10 @@ function editGenInDate(idx) {
 
 function downloadGenTemplate() {
   if (!window.XLSX) { toast('SheetJS 로딩 중...'); return; }
-  const data = [['코드', '관리코드', '대분류', '모델 및 규격', '제품설명 및 품명', '원가', '판매가', '스토어팜', '오픈마켓', '비고', '입고날짜']];
-  data.push(['SAMPLE-001', '8801234567890', '전동공구', '샘플 제품', '샘플 설명', 90000, 95000, 97000, 105000, '', '']);
+  const data = [['코드', '관리코드', '대분류', '모델 및 규격', '제품설명 및 품명', '원가', '도매(A)', '스토어팜', '오픈마켓', 'IN수량', 'IN단가', 'OUT수량', 'OUT단가', '파레트수량', '비고', '입고날짜']];
+  data.push(['SAMPLE-001', '8801234567890', '전동공구', '샘플 제품', '샘플 설명', 90000, 95000, 97000, 105000, 10, 800, 120, 750, 1200, '', '']);
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [{wch:12},{wch:16},{wch:12},{wch:25},{wch:40},{wch:12},{wch:12},{wch:12},{wch:12},{wch:20},{wch:15}];
+  ws['!cols'] = [{wch:12},{wch:16},{wch:12},{wch:25},{wch:40},{wch:12},{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:8},{wch:10},{wch:10},{wch:20},{wch:15}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '일반제품');
   XLSX.writeFile(wb, '일반제품_양식.xlsx');
@@ -4315,8 +4343,13 @@ function uploadGenProducts(input) {
           priceA: parseInt(r[6]) || 0,
           priceNaver: parseInt(r[7]) || 0,
           priceOpen: parseInt(r[8]) || 0,
-          memo: String(r[9] || ''),
-          inDate: String(r[10] || ''),
+          inQty: parseInt(r[9]) || 0,
+          inPrice: parseInt(r[10]) || 0,
+          outQty: parseInt(r[11]) || 0,
+          outPrice: parseInt(r[12]) || 0,
+          palletQty: parseInt(r[13]) || 0,
+          memo: String(r[14] || ''),
+          inDate: String(r[15] || ''),
           source: 'general'
         });
         count++;
