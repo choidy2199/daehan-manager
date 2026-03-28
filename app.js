@@ -2005,7 +2005,7 @@ function renderOnlineSales() {
     if (editable) {
       html += '<td><input class="os-input os-input-text" value="'+(item.promoName||'')+'" onchange="updateOsField('+ri+',\'promoName\',this.value)" style="width:130px;font-size:10px"></td>';
     } else { html += '<td style="text-align:left"><span class="os-promo-badge">'+(item.promoName||'-')+'</span></td>'; }
-    if (editable) { html += '<td class="center"><button class="os-del-btn" onclick="removeOsRow('+ri+')">✕</button></td>'; }
+    if (editable) { html += '<td class="center" style="white-space:nowrap"><button class="btn-primary" onclick="insertOsRowAfter('+ri+')" style="padding:2px 6px;font-size:10px;margin-right:3px">+</button><button class="os-del-btn" onclick="removeOsRow('+ri+')">✕</button></td>'; }
     else { html += '<td></td>'; }
     html += '</tr>';
   });
@@ -2062,6 +2062,34 @@ function addOnlineSalesRow(){
 function removeOsRow(idx){
   if(!confirm('이 항목을 삭제하시겠습니까?'))return;
   onlineSalesData.splice(idx,1);saveOnlineSales();renderOnlineSales();
+}
+
+function insertOsRowAfter(idx) {
+  var newRow = {date:todayStr(),code:'',model:'',stock:0,vendor:'',price:0,promoCost:0,naverPrice:0,openPrice:0,promoName:''};
+  onlineSalesData.splice(idx+1,0,newRow);
+  saveOnlineSales();renderOnlineSales();
+}
+
+function importOnlineSalesCumul() {
+  var cumulPromos = DB.promotions.filter(function(p) {
+    return p.promoName && p.promoName.indexOf('누적') >= 0;
+  });
+  if (!cumulPromos.length) { toast('누적 프로모션 제품이 없습니다'); return; }
+  var added=0, skipped=0;
+  cumulPromos.forEach(function(promo) {
+    var code = String(promo.code);
+    if (onlineSalesData.some(function(d){return String(d.code)===code})) { skipped++; return; }
+    var p = DB.products.find(function(pr){return String(pr.code)===code});
+    var stock = findStock(code);
+    onlineSalesData.push({
+      date:todayStr(), code:code, model:promo.model||(p?p.model:''), stock:stock!=null?stock:0,
+      vendor:'', price:p?(p.supplyPrice||0):0, promoCost:promo.cost||promo.promoPrice||0,
+      naverPrice:0, openPrice:0, promoName:promo.promoName||''
+    });
+    added++;
+  });
+  saveOnlineSales();renderOnlineSales();
+  toast(added+'건 누적P 불러오기 완료'+(skipped>0?' ('+skipped+'건 중복 제외)':''));
 }
 
 function importOnlineSalesProducts(){

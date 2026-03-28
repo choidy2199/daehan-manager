@@ -450,7 +450,7 @@
     <div class="section-header">
       <span>온라인판매관리</span>
       <div style="display:flex;gap:6px">
-        <button class="btn-primary" onclick="importOnlineSalesProducts()" style="padding:5px 12px;font-size:12px">제품 불러오기</button>
+        <button class="btn-primary" onclick="importOnlineSalesCumul()" style="padding:5px 12px;font-size:12px">밀워키 누적P 불러오기</button>
         <button class="btn-primary" onclick="addOnlineSalesRow()" style="padding:5px 12px;font-size:12px">+ 행 추가</button>
         <button class="btn-action-sub" onclick="exportOnlineSalesExcel()" style="padding:5px 12px;font-size:12px">엑셀 내보내기</button>
         <button class="btn-setting" onclick="archiveOnlineSales()" style="padding:5px 12px;font-size:12px;background:#1D9E75;color:#FFF;border:none;border-radius:6px;cursor:pointer">월 마감</button>
@@ -482,7 +482,7 @@
               <th style="width:70px;background:rgba(24,95,165,0.08);color:#0C447C" class="num">이익</th>
               <th style="width:50px;background:rgba(24,95,165,0.08);color:#0C447C" class="center">이익률</th>
               <th style="min-width:140px">프로모션</th>
-              <th style="width:40px" class="center"></th>
+              <th style="width:60px" class="center"></th>
             </tr>
           </thead>
           <tbody id="os-body"></tbody>
