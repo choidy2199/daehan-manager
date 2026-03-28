@@ -3037,6 +3037,10 @@ let orderSettings = loadObj(ORDER_SETTINGS_KEY, {
   volPromos: [{name:'',rate:0},{name:'',rate:0},{name:'',rate:0},{name:'',rate:0}]
 });
 
+function syncInventory() {
+  toast('경영박사 API 연동 준비 중입니다. (관리코드 기준 재고 동기화)');
+}
+
 function showOrderSettingsModal() {
   const s = orderSettings;
   const arP = s.arPromos || [{name:'',rate:0},{name:'',rate:0},{name:'',rate:0},{name:'',rate:0}];
