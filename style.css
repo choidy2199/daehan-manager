@@ -255,7 +255,7 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
 .os-stock-alert { font-size:8px; font-weight:600; padding:1px 4px; border-radius:2px; white-space:nowrap; }
 .os-stock-alert-warn { background:#FAEEDA; color:#854F0B; }
 .os-stock-alert-danger { background:#FCEBEB; color:#791F1F; }
-.os-promo-badge { font-size:12px; font-weight:600; padding:1px 6px; border-radius:3px; background:#FAEEDA; color:#633806; white-space:nowrap; display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+.os-promo-badge { font-size:12px; font-weight:600; padding:1px 6px; border-radius:3px; background:#FAEEDA; color:#633806; white-space:normal; word-break:keep-all; display:inline-block; }
 .os-vendor-input { width:70px; }
 .os-filter-pill { padding:3px 10px; font-size:10px; font-weight:500; border-radius:12px; cursor:pointer; border:1px solid #DDE1EB; background:#FFF; color:#5A6070; }
 .os-filter-pill.active { background:#185FA5; color:#FFF; border-color:#185FA5; }
