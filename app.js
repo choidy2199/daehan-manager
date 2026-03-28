@@ -2815,6 +2815,7 @@ function importExcel() {
               if (v === '인상률') col.인상률 = i;
               if (v === '재고') col.재고 = i;
               if (v === '입고날짜' || v === '입고일') col.입고날짜 = i;
+              if (v === '본사가용' || v === '가용수량' || v === '본사') col.본사가용 = i;
             });
             break;
           }
@@ -2841,8 +2842,18 @@ function importExcel() {
           }
         }
 
-        DB.products = [];
-        const dataStart = headerRow + 2; // skip header + sub-header
+        // 업로드 모드 확인
+        var importMode = 'replace';
+        var modeRadios = document.querySelectorAll('input[name="import-mode"]');
+        modeRadios.forEach(function(r) { if (r.checked) importMode = r.value; });
+
+        if (importMode === 'replace') {
+          DB.products = [];
+        }
+
+        var updatedCount = 0;
+        var addedCount = 0;
+        const dataStart = headerRow + 2;
         for (let i = dataStart; i < data.length; i++) {
           const row = data[i];
           const code = row && row[col.코드 ?? 2];
@@ -2853,7 +2864,7 @@ function importExcel() {
           const costVal = row[col.원가 ?? (is26 ? 14 : 12)] || 0;
           const cost = costVal || calcCost(supplyPrice, productDC);
 
-          DB.products.push({
+          var newItem = {
             discontinued: (String(row[col.단종 ?? 1] || '').trim() === '단종') ? '단종' : '',
             code: String(code),
             manageCode: col.관리코드 != null ? String(row[col.관리코드] || '') : '',
@@ -2870,8 +2881,29 @@ function importExcel() {
             priceA: 0, priceRetail: 0, priceNaver: 0, priceOpen: 0,
             raisedPrice: is26 ? (row[col.인상가 ?? 11] || 0) : 0,
             raiseRate: is26 ? (row[col.인상률 ?? 12] || 0) : 0,
+            ttiStock: col.본사가용 != null ? String(row[col.본사가용] || '') : '',
             inDate: col.입고날짜 != null ? String(row[col.입고날짜] || '') : ''
-          });
+          };
+
+          if (importMode === 'merge') {
+            var existIdx = DB.products.findIndex(function(p) { return String(p.code) === String(code); });
+            if (existIdx >= 0) {
+              var exist = DB.products[existIdx];
+              Object.keys(newItem).forEach(function(key) {
+                if (key === 'priceA' || key === 'priceRetail' || key === 'priceNaver' || key === 'priceOpen') return;
+                if (newItem[key] !== '' && newItem[key] !== 0 && newItem[key] !== null) {
+                  exist[key] = newItem[key];
+                }
+              });
+              updatedCount++;
+            } else {
+              DB.products.push(newItem);
+              addedCount++;
+            }
+          } else {
+            DB.products.push(newItem);
+            addedCount++;
+          }
 
           if (col.재고 != null && row[col.재고] != null) {
             const stockCode = String(code);
@@ -2883,7 +2915,13 @@ function importExcel() {
             }
           }
         }
-        imported.products = DB.products.length;
+
+        if (importMode === 'merge') {
+          imported.products = updatedCount + addedCount;
+          imported.mergeInfo = '업데이트: ' + updatedCount + '건, 신규추가: ' + addedCount + '건';
+        } else {
+          imported.products = DB.products.length;
+        }
         imported.priceSheet = priceSheet;
         imported.headerInfo = `헤더 Row${headerRow+1}, 컬럼 ${Object.keys(col).length}개 감지`;
         save(KEYS.settings, DB.settings);
@@ -2975,6 +3013,7 @@ function importExcel() {
               <td style="padding:4px 8px;text-align:right;font-weight:600;${m.count > 0 ? 'color:#1D9E75' : 'color:#9BA3B2'}">${m.count > 0 ? m.count + (m.name === '리베이트' ? '구간' : '건') : '-'}</td>
             </tr>`).join('')}
           </table>
+          ${imported.mergeInfo ? '<div style="margin-top:8px;color:#185FA5;font-weight:600">📋 ' + imported.mergeInfo + '</div>' : ''}
           <div style="margin-top:8px;font-size:11px;color:#5A6070">${imported.headerInfo ? '📊 ' + imported.headerInfo + ' | ' : ''}⚙ 분기 ${(DB.settings.quarterDC*100).toFixed(1)}% | 년간 ${(DB.settings.yearDC*100).toFixed(1)}% | 네이버 ${(DB.settings.naverFee*100).toFixed(1)}% | 오픈전동 ${(DB.settings.openElecFee*100).toFixed(1)}%</div>`;
       }
 
