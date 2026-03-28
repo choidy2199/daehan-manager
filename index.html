@@ -577,37 +577,79 @@
       <button class="btn-action" onclick="savePartsPrices()">시세 저장</button>
     </div>
     <div class="section-body" style="padding:12px">
-      <div style="font-size:12px;color:#5A6070;margin-bottom:12px">배터리/충전기 매입원가를 입력하세요. 모든 세트 분석에 공통 적용됩니다.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
-        <!-- M12 -->
-        <div style="border:1px solid var(--tl-border);border-radius:8px;overflow:hidden">
-          <div style="background:#E6F1FB;padding:8px 12px;font-weight:700;color:#0C447C">M12 배터리</div>
-          <div style="padding:10px 12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
-            <div><label class="label">M12 B2 (2.0Ah)</label><input class="input" id="pp-M12B2" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M12 HB2.5 (2.5Ah)</label><input class="input" id="pp-M12HB25" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M12 B4 (4.0Ah)</label><input class="input" id="pp-M12B4" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M12 HB5 (5.0Ah)</label><input class="input" id="pp-M12HB5" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
+      <div style="display:flex;gap:12px">
+        <!-- 좌측: 일반 시세 -->
+        <div style="flex:1;min-width:0;border:1px solid #DDE1EB;border-radius:6px;overflow:hidden">
+          <div style="background:#1A1D23;color:white;padding:0 12px;height:30px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600">
+            <span>일반 시세</span><span style="font-size:9px;opacity:0.7">세트분해(일반)에 적용</span>
           </div>
-          <div style="background:#F4F6FA;padding:8px 12px;font-weight:700;color:#5A6070;border-top:1px solid var(--tl-border)">M12 충전기</div>
-          <div style="padding:10px 12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
-            <div><label class="label">C12C (12V 전용)</label><input class="input" id="pp-C12C" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
+          <div style="padding:8px">
+            <div style="border:1px solid var(--tl-border);border-radius:6px;overflow:hidden;margin-bottom:8px">
+              <div style="background:#E6F1FB;padding:6px 10px;font-weight:700;font-size:12px;color:#0C447C">M12 배터리</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div><label class="label" style="font-size:9px">M12 B2 (2.0Ah)</label><input class="input" id="pp-M12B2" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12 HB2.5 (2.5Ah)</label><input class="input" id="pp-M12HB25" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12 B4 (4.0Ah)</label><input class="input" id="pp-M12B4" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12 HB5 (5.0Ah)</label><input class="input" id="pp-M12HB5" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+              </div>
+              <div style="background:#F4F6FA;padding:6px 10px;font-weight:700;font-size:12px;color:#5A6070;border-top:1px solid var(--tl-border)">M12 충전기</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div><label class="label" style="font-size:9px">C12C (12V 전용)</label><input class="input" id="pp-C12C" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+              </div>
+            </div>
+            <div style="border:1px solid var(--tl-border);border-radius:6px;overflow:hidden">
+              <div style="background:#FCEBEB;padding:6px 10px;font-weight:700;font-size:12px;color:#CC2222">M18 배터리</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+                <div><label class="label" style="font-size:9px">M18 B2</label><input class="input" id="pp-M18B2" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 HB3</label><input class="input" id="pp-M18HB3" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 B5</label><input class="input" id="pp-M18B5" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 FB6</label><input class="input" id="pp-M18FB6" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 FB8</label><input class="input" id="pp-M18FB8" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 FB12</label><input class="input" id="pp-M18FB12" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+              </div>
+              <div style="background:#F4F6FA;padding:6px 10px;font-weight:700;font-size:12px;color:#5A6070;border-top:1px solid var(--tl-border)">M18 충전기</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div><label class="label" style="font-size:9px">M12-18C (멀티)</label><input class="input" id="pp-M1218C" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12-18FC (급속)</label><input class="input" id="pp-M1218FC" type="text" placeholder="원가" style="font-size:11px;text-align:right;height:26px" oninput="formatPartsInput(this)"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- M18 -->
-        <div style="border:1px solid var(--tl-border);border-radius:8px;overflow:hidden">
-          <div style="background:#FCEBEB;padding:8px 12px;font-weight:700;color:#CC2222">M18 배터리</div>
-          <div style="padding:10px 12px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
-            <div><label class="label">M18 B2 (2.0Ah)</label><input class="input" id="pp-M18B2" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M18 HB3 (3.0Ah)</label><input class="input" id="pp-M18HB3" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M18 B5 (5.0Ah)</label><input class="input" id="pp-M18B5" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M18 FB6 (FORGE 6Ah)</label><input class="input" id="pp-M18FB6" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M18 FB8 (FORGE 8Ah)</label><input class="input" id="pp-M18FB8" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M18 FB12 (FORGE 12Ah)</label><input class="input" id="pp-M18FB12" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
+        <!-- 우측: 프로모션 시세 -->
+        <div style="flex:1;min-width:0;border:1px solid #DDE1EB;border-radius:6px;overflow:hidden">
+          <div style="background:#185FA5;color:white;padding:0 12px;height:30px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600">
+            <span>프로모션 시세</span><span style="font-size:9px;opacity:0.8">세트분해(프로모션)에 적용</span>
           </div>
-          <div style="background:#F4F6FA;padding:8px 12px;font-weight:700;color:#5A6070;border-top:1px solid var(--tl-border)">M18 충전기</div>
-          <div style="padding:10px 12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
-            <div><label class="label">M12-18C (멀티)</label><input class="input" id="pp-M1218C" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
-            <div><label class="label">M12-18FC (급속)</label><input class="input" id="pp-M1218FC" type="text" placeholder="원가" style="font-size:12px;text-align:right" oninput="formatPartsInput(this)"></div>
+          <div style="padding:8px">
+            <div style="border:1px solid var(--tl-border);border-radius:6px;overflow:hidden;margin-bottom:8px">
+              <div style="background:#E6F1FB;padding:6px 10px;font-weight:700;font-size:12px;color:#0C447C">M12 배터리</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div><label class="label" style="font-size:9px">M12 B2 (2.0Ah)</label><input class="input" id="ppp-M12B2" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12 HB2.5 (2.5Ah)</label><input class="input" id="ppp-M12HB25" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12 B4 (4.0Ah)</label><input class="input" id="ppp-M12B4" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12 HB5 (5.0Ah)</label><input class="input" id="ppp-M12HB5" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+              </div>
+              <div style="background:#F4F6FA;padding:6px 10px;font-weight:700;font-size:12px;color:#5A6070;border-top:1px solid var(--tl-border)">M12 충전기</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div><label class="label" style="font-size:9px">C12C (12V 전용)</label><input class="input" id="ppp-C12C" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+              </div>
+            </div>
+            <div style="border:1px solid var(--tl-border);border-radius:6px;overflow:hidden">
+              <div style="background:#FCEBEB;padding:6px 10px;font-weight:700;font-size:12px;color:#CC2222">M18 배터리</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+                <div><label class="label" style="font-size:9px">M18 B2</label><input class="input" id="ppp-M18B2" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 HB3</label><input class="input" id="ppp-M18HB3" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 B5</label><input class="input" id="ppp-M18B5" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 FB6</label><input class="input" id="ppp-M18FB6" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 FB8</label><input class="input" id="ppp-M18FB8" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M18 FB12</label><input class="input" id="ppp-M18FB12" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+              </div>
+              <div style="background:#F4F6FA;padding:6px 10px;font-weight:700;font-size:12px;color:#5A6070;border-top:1px solid var(--tl-border)">M18 충전기</div>
+              <div style="padding:8px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div><label class="label" style="font-size:9px">M12-18C (멀티)</label><input class="input" id="ppp-M1218C" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+                <div><label class="label" style="font-size:9px">M12-18FC (급속)</label><input class="input" id="ppp-M1218FC" type="text" placeholder="빈칸=일반가" style="font-size:11px;text-align:right;height:26px;border-color:#B5D4F4;background:#FAFCFF" oninput="formatPartsInput(this)"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

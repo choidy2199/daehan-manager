@@ -4666,6 +4666,7 @@ const PARTS_KEYS = ['M12B2','M12HB25','M12B4','M12HB5','M18B2','M18HB3','M18B5',
 const PARTS_LABELS = {'M12B2':'M12 B2','M12HB25':'M12 HB2.5','M12B4':'M12 B4','M12HB5':'M12 HB5','M18B2':'M18 B2','M18HB3':'M18 HB3','M18B5':'M18 B5','M18FB6':'M18 FB6','M18FB8':'M18 FB8','M18FB12':'M18 FB12','C12C':'C12C','M1218C':'M12-18C','M1218FC':'M12-18FC'};
 
 let partsPrices = loadObj('mw_parts_prices', {});
+let promoParts = loadObj('mw_parts_prices_promo', {});
 let setbunItems = loadObj('mw_setbun_items', []);
 
 function formatPartsInput(el) {
@@ -4677,6 +4678,8 @@ function loadPartsPricesUI() {
   PARTS_KEYS.forEach(k => {
     const el = document.getElementById('pp-' + k);
     if (el && partsPrices[k]) el.value = partsPrices[k].toLocaleString();
+    const pel = document.getElementById('ppp-' + k);
+    if (pel && promoParts[k]) pel.value = promoParts[k].toLocaleString();
   });
 }
 
@@ -4684,13 +4687,21 @@ function savePartsPrices() {
   PARTS_KEYS.forEach(k => {
     const el = document.getElementById('pp-' + k);
     if (el) partsPrices[k] = parseInt(el.value.replace(/,/g, '')) || 0;
+    const pel = document.getElementById('ppp-' + k);
+    if (pel) promoParts[k] = parseInt(pel.value.replace(/,/g, '')) || 0;
   });
   localStorage.setItem('mw_parts_prices', JSON.stringify(partsPrices));
+  localStorage.setItem('mw_parts_prices_promo', JSON.stringify(promoParts));
   renderSetbun();
-  toast('배터리/충전기 시세 저장 완료');
+  toast('배터리/충전기 시세 저장 완료 (일반+프로모션)');
 }
 
 function getPartPrice(key) { return partsPrices[key] || 0; }
+
+function getPromoPartPrice(key) {
+  if (promoParts[key] && promoParts[key] > 0) return promoParts[key];
+  return partsPrices[key] || 0;
+}
 
 function addSetbunItem(mode) {
   document.getElementById('setbun-edit-title').textContent = '세트 분해 분석 추가';
@@ -4915,9 +4926,9 @@ function calcSetbunPromo(item) {
   var bareEC = getEffectiveCost(item.bareCode);
   var setCost = setEC.cost || (setP ? setP.cost : 0);
   var bareCost = bareEC.cost || (bareP ? bareP.cost : 0);
-  var bat1Price = getPartPrice(item.bat1);
-  var bat2Price = getPartPrice(item.bat2);
-  var chargerPrice = getPartPrice(item.charger);
+  var bat1Price = getPromoPartPrice(item.bat1);
+  var bat2Price = getPromoPartPrice(item.bat2);
+  var chargerPrice = getPromoPartPrice(item.charger);
   var partsTotal = bat1Price + bat2Price + chargerPrice;
   var disassembledCost = setCost - partsTotal;
   var diff = bareCost - disassembledCost;
