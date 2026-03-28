@@ -4438,18 +4438,12 @@ function switchManageSub(type) {
 // ======================== 관리: 수수료 설정 ========================
 function loadFeeSettings() {
   var s = DB.settings;
-  // 부가세
-  var vatMode = s.feeVatMode || 'incl';
-  document.getElementById('fee-vat-incl').className = vatMode === 'incl' ? 'btn-action' : 'btn-sub-inactive';
-  document.getElementById('fee-vat-excl').className = vatMode === 'excl' ? 'btn-action' : 'btn-sub-inactive';
-  // 네이버
   document.getElementById('fee-naver-sale').value = s.naverSaleRate || 3.0;
   document.getElementById('fee-naver-pay').value = s.naverPayRate || 3.63;
   updateNaverTotal();
-  // 쿠팡
-  document.getElementById('fee-coupang-sale').value = s.coupangFee || 10.8;
+  document.getElementById('fee-coupang-mp').value = s.coupangMpFee || 10.8;
+  document.getElementById('fee-coupang-rg').value = s.coupangRgFee || 10.8;
   document.getElementById('fee-coupang-logi').value = s.coupangLogi || 2800;
-  // 오픈마켓
   document.getElementById('fee-open-elec').value = ((s.openElecFee || 0.13) * 100).toFixed(1);
   document.getElementById('fee-open-hand').value = ((s.openHandFee || 0.176) * 100).toFixed(1);
 }
@@ -4460,31 +4454,24 @@ function updateNaverTotal() {
   document.getElementById('fee-naver-total').textContent = (sale + pay).toFixed(2) + '%';
 }
 
-function applyCoupangPreset(val) {
+function applyCoupangPreset(type, val) {
   if (!val) return;
-  document.getElementById('fee-coupang-sale').value = val;
-}
-
-function setFeeVat(mode) {
-  document.getElementById('fee-vat-incl').className = mode === 'incl' ? 'btn-action' : 'btn-sub-inactive';
-  document.getElementById('fee-vat-excl').className = mode === 'excl' ? 'btn-action' : 'btn-sub-inactive';
+  if (type === 'mp') document.getElementById('fee-coupang-mp').value = val;
+  if (type === 'rg') document.getElementById('fee-coupang-rg').value = val;
 }
 
 function saveFeeSettings() {
-  // 부가세
-  DB.settings.feeVatMode = document.getElementById('fee-vat-incl').className.includes('btn-action') ? 'incl' : 'excl';
-  // 네이버
   var sale = parseFloat(document.getElementById('fee-naver-sale').value) || 3.0;
   var pay = parseFloat(document.getElementById('fee-naver-pay').value) || 3.63;
   DB.settings.naverSaleRate = sale;
   DB.settings.naverPayRate = pay;
   DB.settings.naverFee = (sale + pay) / 100;
-  // 쿠팡
-  DB.settings.coupangFee = parseFloat(document.getElementById('fee-coupang-sale').value) || 10.8;
+  DB.settings.coupangMpFee = parseFloat(document.getElementById('fee-coupang-mp').value) || 10.8;
+  DB.settings.coupangRgFee = parseFloat(document.getElementById('fee-coupang-rg').value) || 10.8;
   DB.settings.coupangLogi = parseInt(document.getElementById('fee-coupang-logi').value) || 2800;
-  // 오픈마켓
   DB.settings.openElecFee = (parseFloat(document.getElementById('fee-open-elec').value) || 13) / 100;
   DB.settings.openHandFee = (parseFloat(document.getElementById('fee-open-hand').value) || 17.6) / 100;
+  DB.settings.feeVatMode = 'incl';
   save(KEYS.settings, DB.settings);
   toast('수수료 설정 저장 완료');
 }
