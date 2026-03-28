@@ -40,6 +40,22 @@ const fmtN = n => n == null || isNaN(n) || n === 0 ? '-' : comma(n);
 const fmtPrice = n => n == null || isNaN(n) ? '-' : '' + comma(n);
 const pct = n => n == null || isNaN(n) ? '-' : (n * 100).toFixed(1) + '%';
 
+function calcMargin(price, cost, feeRate) {
+  if (!price || !cost) return null;
+  var vat = price / 11;
+  var fee = price * feeRate;
+  var profit = price - vat - fee - cost;
+  var rate = (profit / price) * 100;
+  return { profit: Math.round(profit), rate: rate };
+}
+
+function marginBadge(price, cost, feeRate) {
+  var m = calcMargin(price, cost, feeRate);
+  if (!m) return '';
+  var color = m.profit >= 0 ? '#1D9E75' : '#CC2222';
+  return '<div style="font-size:10px;color:' + color + ';line-height:1.2;margin-top:2px">' + m.rate.toFixed(1) + '% ' + (m.profit >= 0 ? '+' : '') + fmt(m.profit) + '원</div>';
+}
+
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -653,8 +669,8 @@ function renderCatalog() {
       })()}
       <td class="num">${fmt(p.priceA)}</td>
       <td class="num">${fmt(p.priceRetail)}</td>
-      <td class="num" style="background:${isD ? 'transparent' : '#F8FBFF'}">${fmt(p.priceNaver)}</td>
-      <td class="num" style="background:${isD ? 'transparent' : '#FEFCF5'}">${fmt(p.priceOpen)}</td>
+      <td class="num" style="background:${isD ? 'transparent' : '#F8FBFF'}">${fmt(p.priceNaver)}${isD ? '' : marginBadge(p.priceNaver, p.cost, DB.settings.naverFee || 0.0663)}</td>
+      <td class="num" style="background:${isD ? 'transparent' : '#FEFCF5'}">${fmt(p.priceOpen)}${isD ? '' : marginBadge(p.priceOpen, p.cost, p.category === '파워툴' ? (DB.settings.openElecFee || 0.13) : (DB.settings.openHandFee || 0.176))}</td>
       <td class="center">${stockBadge}</td>
       <td style="text-align:left;font-size:12px;cursor:pointer;white-space:nowrap;padding-left:8px" onclick="editInDate(${idx})" title="클릭하여 입고날짜 메모 편집">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
       <td class="center" style="white-space:nowrap"><button class="btn-edit" onclick="showProductModal(${idx})">수정</button> <button class="btn-danger btn-sm" onclick="deleteProduct(${idx})" style="padding:2px 6px;font-size:11px">삭제</button> <button class="btn-edit" onclick="toggleDiscontinued(${idx},${!isD})" style="padding:2px 6px;font-size:11px;${isD ? 'background:#CC2222' : 'background:#9BA3B2'}">${isD ? '단종됨' : '단종'}</button></td>
@@ -3646,8 +3662,8 @@ function renderGenProducts() {
       <td>${p.description || '-'}</td>
       <td class="num" style="color:#1D9E75">${fmt(p.cost || 0)}</td>
       <td class="num">${fmt(p.priceA || 0)}</td>
-      <td class="num">${fmt(p.priceNaver || 0)}</td>
-      <td class="num">${fmt(p.priceOpen || 0)}</td>
+      <td class="num">${fmt(p.priceNaver || 0)}${marginBadge(p.priceNaver, p.cost, DB.settings.naverFee || 0.0663)}</td>
+      <td class="num">${fmt(p.priceOpen || 0)}${marginBadge(p.priceOpen, p.cost, DB.settings.openElecFee || 0.13)}</td>
       <td><input value="${(p.memo || '').replace(/"/g,'&quot;')}" onchange="updateGenMemo(${idx},this.value)" placeholder="" style="width:100%;font-size:12px;border:1px solid #DDE1EB;border-radius:4px;padding:2px 6px;background:#fff;color:#1A1D23;text-align:left"></td>
       <td style="text-align:left;font-size:12px;cursor:pointer;white-space:nowrap;padding-left:8px" onclick="editGenInDate(${idx})">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
     </tr>`;
