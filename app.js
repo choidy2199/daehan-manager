@@ -1301,8 +1301,13 @@ function confirmPromoOrder() {
   poHistory.push(record);
   localStorage.setItem(PO_HISTORY_KEY, JSON.stringify(poHistory));
 
-  // 수량 즉시 초기화
-  poOrderData.forEach(item => { item.orderQty = 0; });
+  // 발주완료 처리 (누적은 제외)
+  poOrderData.forEach(function(item) {
+    if (item.orderQty > 0) {
+      var isCumul = item.promoName && item.promoName.indexOf('누적') >= 0;
+      if (!isCumul) item.confirmed = true;
+    }
+  });
   spotOrderData.forEach(item => { item.orderQty = 0; });
   savePoOrders();
   saveSpotOrders();
@@ -1491,30 +1496,64 @@ function findCodeByModel(model, ttiNum) {
 }
 
 function renderPoOrder() {
-  const body = document.getElementById('po-order-body');
-  body.innerHTML = poOrderData.map((item, i) => {
-    const code = item.code || findCodeByModel(item.model, item.ttiNum);
-    return `<tr>
-      <td class="center"><button class="btn-danger btn-sm" onclick="removePoRow(${i})" style="padding:2px 6px">✕</button></td>
-      <td class="center">${code || '-'}</td>
-      <td class="center" style="font-weight:600;color:#185FA5">${item.promoNo || '-'}</td>
-      <td class="center" style="font-size:11px">${item.promoName || '-'}</td>
-      <td class="center">${item.discountRate ? item.discountRate + (String(item.discountRate).includes('%') ? '' : '%') : '-'}</td>
-      <td class="center">${item.orderNum || '-'}</td>
-      <td class="center" style="font-weight:500">${item.model || '-'}</td>
-      <td class="center" style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.description || '-'}</td>
-      <td class="center">${item.baseQty || '-'}</td>
-      <td class="center"><input type="number" value="${item.orderQty || ''}" onchange="poOrderData[${i}].orderQty=parseInt(this.value)||0;savePoOrders()" min="0" style="width:60px;text-align:center"></td>
-      <td class="num">${item.basePrice ? fmt(item.basePrice) : '-'}</td>
-      <td class="num" style="color:#CC2222;font-weight:600">${item.promoPrice ? fmt(item.promoPrice) : '-'}</td>
-      <td class="center" style="font-size:11px">${item.promoName || '-'}</td>
-    </tr>`;
+  var body = document.getElementById('po-order-body');
+  var sorted = poOrderData.slice().sort(function(a, b) {
+    var aC = a.confirmed && !(a.promoName && a.promoName.indexOf('누적') >= 0);
+    var bC = b.confirmed && !(b.promoName && b.promoName.indexOf('누적') >= 0);
+    if (aC && !bC) return 1;
+    if (!aC && bC) return -1;
+    return 0;
+  });
+  var cumulStats = {};
+  poOrderData.forEach(function(item) {
+    if (item.promoName && item.promoName.indexOf('누적') >= 0) {
+      var key = String(item.code || item.model);
+      if (!cumulStats[key]) cumulStats[key] = { qty: 0, total: 0 };
+      cumulStats[key].qty += (item.orderQty || 0);
+      cumulStats[key].total += (item.orderQty || 0) * (item.promoPrice || 0);
+    }
+  });
+  body.innerHTML = sorted.map(function(item) {
+    var i = poOrderData.indexOf(item);
+    var code = item.code || findCodeByModel(item.model, item.ttiNum);
+    var isCumul = item.promoName && item.promoName.indexOf('누적') >= 0;
+    var isConf = item.confirmed && !isCumul;
+    var orderTotal = (item.orderQty || 0) * (item.promoPrice || 0);
+    var memoHtml = '';
+    if (isConf) {
+      memoHtml = '<span style="background:#E1F5EE;color:#085041;font-weight:600;padding:2px 6px;border-radius:3px;font-size:9px">발주완료</span>';
+    } else if (isCumul && item.orderQty > 0) {
+      var cKey = String(item.code || item.model);
+      var cs = cumulStats[cKey] || { qty: 0, total: 0 };
+      memoHtml = '<div style="display:flex;flex-direction:column;align-items:center;gap:1px"><span style="font-size:8px;color:#5A6070">공급가</span><span style="font-size:11px;font-weight:600;color:#185FA5">' + fmt(cs.total) + '</span><span style="font-size:10px;color:#5A6070">누적 ' + cs.qty + '개</span></div>';
+    }
+    var rs = isConf ? ' style="background:#F9FBF9"' : '';
+    var cs = isConf ? 'color:#9BA3B2' : '';
+    var qtyCell = isConf
+      ? '<td class="center" style="' + cs + '">' + (item.orderQty || 0) + '</td>'
+      : '<td class="center"><input type="number" value="' + (item.orderQty || '') + '" onchange="poOrderData[' + i + '].orderQty=parseInt(this.value)||0;savePoOrders();renderPoOrder()" min="0" style="width:60px;text-align:center"></td>';
+    return '<tr' + rs + '>' +
+      '<td class="center"><button class="btn-danger btn-sm" onclick="removePoRow(' + i + ')" style="padding:2px 6px">✕</button></td>' +
+      '<td class="center" style="' + cs + '">' + (code || '-') + '</td>' +
+      '<td class="center" style="font-weight:600;color:#185FA5;' + (isConf ? 'opacity:0.5' : '') + '">' + (item.promoNo || '-') + '</td>' +
+      '<td class="center" style="font-size:11px;' + cs + '">' + (item.promoName || '-') + '</td>' +
+      '<td class="center" style="' + cs + '">' + (item.discountRate ? item.discountRate + (String(item.discountRate).includes('%') ? '' : '%') : '-') + '</td>' +
+      '<td class="center" style="' + cs + '">' + (item.orderNum || '-') + '</td>' +
+      '<td class="center" style="font-weight:500;' + cs + '">' + (item.model || '-') + '</td>' +
+      '<td class="center" style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + cs + '">' + (item.description || '-') + '</td>' +
+      '<td class="center" style="' + cs + '">' + (item.baseQty || '-') + '</td>' +
+      qtyCell +
+      '<td class="center">' + memoHtml + '</td>' +
+      '<td class="num" style="' + cs + '">' + (item.basePrice ? fmt(item.basePrice) : '-') + '</td>' +
+      '<td class="num" style="color:#CC2222;font-weight:600;' + (isConf ? 'opacity:0.5' : '') + '">' + (item.promoPrice ? fmt(item.promoPrice) : '-') + '</td>' +
+      '<td class="num" style="font-weight:600;color:#185FA5;' + (isConf ? 'opacity:0.5' : '') + '">' + (orderTotal > 0 ? fmt(orderTotal) : '-') + '</td>' +
+      '<td class="center" style="font-size:11px;' + cs + '">' + (item.promoName || '-') + '</td>' +
+      '</tr>';
   }).join('');
-
   if (!poOrderData.length) {
-    body.innerHTML = '<tr><td colspan="13"><div class="empty-state"><p>프로모션 발주 항목이 없습니다</p><p style="font-size:12px;color:#9BA3B2">엑셀 업로드 또는 + 추가로 등록하세요</p></div></td></tr>';
+    body.innerHTML = '<tr><td colspan="15"><div class="empty-state"><p>프로모션 발주 항목이 없습니다</p><p style="font-size:12px;color:#9BA3B2">엑셀 업로드 또는 + 추가로 등록하세요</p></div></td></tr>';
   }
-  document.getElementById('po-order-count').textContent = `${poOrderData.length}건`;
+  document.getElementById('po-order-count').textContent = poOrderData.length + '건';
   initColumnResize('order-po-table');
   initStickyHeader('order-po-table');
 }
