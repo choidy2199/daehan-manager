@@ -2098,9 +2098,12 @@ function saveFeeCalc() {
 function renderFeeCalc() {
   var s = DB.settings;
   var naverFee = s.naverFee || 0.0663;
-  var coupangFee = s.coupangMpFee ? s.coupangMpFee / 100 : 0.108;
-  document.getElementById('fc-badge-naver').textContent = '스토어팜 수수료: ' + (naverFee * 100).toFixed(2) + '%';
-  document.getElementById('fc-badge-coupang').textContent = '쿠팡MP 수수료: ' + (coupangFee * 100).toFixed(1) + '%';
+  var coupangMpFee = s.coupangMpFee ? s.coupangMpFee / 100 : 0.108;
+  var coupangRgFee = s.coupangRgFee ? s.coupangRgFee / 100 : 0.108;
+  var coupangLogi = s.coupangLogi || 2800;
+  document.getElementById('fc-badge-naver').textContent = '스토어팜: ' + (naverFee * 100).toFixed(2) + '%';
+  document.getElementById('fc-badge-coupang-mp').textContent = '쿠팡(마켓): ' + (coupangMpFee * 100).toFixed(1) + '%';
+  document.getElementById('fc-badge-coupang-rg').textContent = '쿠팡(로켓그로스): ' + (coupangRgFee * 100).toFixed(1) + '% + 물류 ' + coupangLogi.toLocaleString() + '원';
 
   var body = document.getElementById('fee-calc-body');
   var html = '';
@@ -2108,26 +2111,29 @@ function renderFeeCalc() {
   feeCalcData.forEach(function(item, i) {
     var cost = parseInt(String(item.cost || '').replace(/,/g, '')) || 0;
     var price = parseInt(String(item.price || '').replace(/,/g, '')) || 0;
-    var naverResult = calcFeeProfit(price, cost, naverFee);
-    var coupangResult = calcFeeProfit(price, cost, coupangFee);
+    var naverResult = calcFeeProfit(price, cost, naverFee, 0);
+    var coupangMpResult = calcFeeProfit(price, cost, coupangMpFee, 0);
+    var coupangRgResult = calcFeeProfit(price, cost, coupangRgFee, coupangLogi);
 
     html += '<tr>';
-    html += '<td class="center"><span style="color:#CC2222;cursor:pointer;font-size:14px" onclick="removeFeeCalcRow(' + i + ')">✕</span></td>';
     html += '<td><input value="' + (item.name || '').replace(/"/g,'&quot;') + '" placeholder="제품명 입력" oninput="updateFeeCalcField(' + i + ',\'name\',this.value)" style="text-align:left"></td>';
     html += '<td><input value="' + (cost ? cost.toLocaleString() : '') + '" placeholder="매입가" oninput="updateFeeCalcField(' + i + ',\'cost\',this.value)"></td>';
     html += '<td><input value="' + (price ? price.toLocaleString() : '') + '" placeholder="판매가" oninput="updateFeeCalcField(' + i + ',\'price\',this.value)" style="font-weight:600"></td>';
     html += '<td class="fc-result">' + formatFeeResult(naverResult) + '</td>';
-    html += '<td class="fc-result">' + formatFeeResult(coupangResult) + '</td>';
+    html += '<td class="fc-result">' + formatFeeResult(coupangMpResult) + '</td>';
+    html += '<td class="fc-result">' + formatFeeResult(coupangRgResult) + '</td>';
+    html += '<td class="center"><button class="os-del-btn" onclick="removeFeeCalcRow(' + i + ')">✕</button></td>';
     html += '</tr>';
   });
 
   html += '<tr style="background:#F4F6FA">';
-  html += '<td class="center" style="font-size:10px;color:#9BA3B2">신규</td>';
   html += '<td><input placeholder="제품명 입력" id="fc-new-name" style="text-align:left"></td>';
   html += '<td><input placeholder="매입가" id="fc-new-cost"></td>';
   html += '<td><input placeholder="판매가" id="fc-new-price" onkeydown="if(event.key===\'Enter\')addFeeCalcFromInput()"></td>';
   html += '<td class="fc-result"><span class="fc-dash">-</span></td>';
   html += '<td class="fc-result"><span class="fc-dash">-</span></td>';
+  html += '<td class="fc-result"><span class="fc-dash">-</span></td>';
+  html += '<td></td>';
   html += '</tr>';
 
   body.innerHTML = html;
@@ -2135,11 +2141,11 @@ function renderFeeCalc() {
   initStickyHeader('fee-calc-table');
 }
 
-function calcFeeProfit(price, cost, feeRate) {
+function calcFeeProfit(price, cost, feeRate, logistics) {
   if (!price || !cost) return null;
   var vat = price / 11;
   var fee = price * feeRate;
-  var profit = price - vat - fee - cost;
+  var profit = price - vat - fee - cost - (logistics || 0);
   var rate = (profit / price) * 100;
   return { profit: Math.round(profit), rate: rate };
 }
