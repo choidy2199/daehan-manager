@@ -441,9 +441,14 @@
 
 <!-- =============== TAB 3: 온라인 판매 =============== -->
 <div id="tab-sales" class="tab-content">
+  <div class="sub-tabs" id="sales-sub-tabs" style="margin-bottom:8px">
+    <button class="sub-tab active" onclick="switchSalesSub('manage')">온라인판매관리</button>
+    <button class="sub-tab" onclick="switchSalesSub('calc')">수수료계산기</button>
+  </div>
+  <div id="sales-sub-manage">
   <div class="section">
     <div class="section-header">
-      <span>온라인 판매 이익률 계산</span>
+      <span>온라인판매관리</span>
       <div style="display:flex;gap:8px">
         <button class="btn-action" onclick="addSalesRow()">+ 추가</button>
         <button class="btn-danger btn-sm" onclick="clearSales()">초기화</button>
@@ -472,6 +477,47 @@
       </div>
     </div>
   </div>
+  </div><!-- /sales-sub-manage -->
+
+  <div id="sales-sub-calc" style="display:none">
+    <div class="section-header">
+      <span>수수료 계산기</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn-primary" onclick="addFeeCalcRow()" style="padding:5px 12px;font-size:12px">+ 행 추가</button>
+        <button class="btn-danger" onclick="clearFeeCalc()" style="padding:5px 12px;font-size:12px">초기화</button>
+      </div>
+    </div>
+    <div class="section-body" style="padding:0">
+      <div style="padding:10px 12px 6px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <span class="fee-calc-badge" id="fc-badge-naver"></span>
+        <span class="fee-calc-badge" id="fc-badge-coupang"></span>
+        <span style="font-size:10px;color:#9BA3B2">※ 수수료는 설정 > 수수료 설정에서 변경</span>
+      </div>
+      <div style="padding:0 12px">
+        <table class="data-table" id="fee-calc-table" style="width:100%">
+          <thead>
+            <tr>
+              <th class="center" style="width:40px"></th>
+              <th style="min-width:200px">제품 및 품명</th>
+              <th class="num" style="width:110px">매입가격</th>
+              <th class="num" style="width:110px">판매가격</th>
+              <th class="center" style="width:140px;background:rgba(29,158,117,0.08);color:#0F6E56">스토어팜</th>
+              <th class="center" style="width:140px;background:rgba(24,95,165,0.08);color:#0C447C">쿠팡</th>
+            </tr>
+          </thead>
+          <tbody id="fee-calc-body"></tbody>
+        </table>
+      </div>
+      <div style="padding:10px 12px;border-top:1px solid #F0F2F7;margin-top:4px">
+        <div style="display:flex;gap:8px;font-size:11px;color:#5A6070;flex-wrap:wrap">
+          <span>계산 공식:</span>
+          <span style="background:#E6F1FB;padding:2px 8px;border-radius:3px;color:#0C447C">이익 = 판매가 − (판매가÷11) − (판매가 × 수수료율) − 매입가</span>
+          <span style="background:#E6F1FB;padding:2px 8px;border-radius:3px;color:#0C447C">이익률 = 이익 ÷ 판매가 × 100</span>
+        </div>
+      </div>
+    </div>
+  </div><!-- /sales-sub-calc -->
+
 </div>
 
 <!-- TAB 4: 프로모션 UI 삭제됨 (DB.promotions 데이터/함수는 유지) -->

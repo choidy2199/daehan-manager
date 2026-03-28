@@ -1864,6 +1864,114 @@ function calcSalesProfit(sellPrice, feeRate, cost) {
   return { revenue, profit, margin };
 }
 
+// ======================== 판매 서브탭 전환 ========================
+function switchSalesSub(sub) {
+  document.getElementById('sales-sub-manage').style.display = sub === 'manage' ? '' : 'none';
+  document.getElementById('sales-sub-calc').style.display = sub === 'calc' ? '' : 'none';
+  var tabs = document.querySelectorAll('#sales-sub-tabs .sub-tab');
+  tabs[0].classList.toggle('active', sub === 'manage');
+  tabs[1].classList.toggle('active', sub === 'calc');
+  if (sub === 'calc') renderFeeCalc();
+}
+
+// ======================== 수수료 계산기 ========================
+var feeCalcData = loadObj('mw_fee_calc', []);
+
+function saveFeeCalc() {
+  localStorage.setItem('mw_fee_calc', JSON.stringify(feeCalcData));
+}
+
+function renderFeeCalc() {
+  var s = DB.settings;
+  var naverFee = s.naverFee || 0.0663;
+  var coupangFee = s.coupangMpFee ? s.coupangMpFee / 100 : 0.108;
+  document.getElementById('fc-badge-naver').textContent = '스토어팜 수수료: ' + (naverFee * 100).toFixed(2) + '%';
+  document.getElementById('fc-badge-coupang').textContent = '쿠팡MP 수수료: ' + (coupangFee * 100).toFixed(1) + '%';
+
+  var body = document.getElementById('fee-calc-body');
+  var html = '';
+
+  feeCalcData.forEach(function(item, i) {
+    var cost = parseInt(String(item.cost || '').replace(/,/g, '')) || 0;
+    var price = parseInt(String(item.price || '').replace(/,/g, '')) || 0;
+    var naverResult = calcFeeProfit(price, cost, naverFee);
+    var coupangResult = calcFeeProfit(price, cost, coupangFee);
+
+    html += '<tr>';
+    html += '<td class="center"><span style="color:#CC2222;cursor:pointer;font-size:14px" onclick="removeFeeCalcRow(' + i + ')">✕</span></td>';
+    html += '<td><input value="' + (item.name || '').replace(/"/g,'&quot;') + '" placeholder="제품명 입력" oninput="updateFeeCalcField(' + i + ',\'name\',this.value)" style="text-align:left"></td>';
+    html += '<td><input value="' + (cost ? cost.toLocaleString() : '') + '" placeholder="매입가" oninput="updateFeeCalcField(' + i + ',\'cost\',this.value)"></td>';
+    html += '<td><input value="' + (price ? price.toLocaleString() : '') + '" placeholder="판매가" oninput="updateFeeCalcField(' + i + ',\'price\',this.value)" style="font-weight:600"></td>';
+    html += '<td class="fc-result">' + formatFeeResult(naverResult) + '</td>';
+    html += '<td class="fc-result">' + formatFeeResult(coupangResult) + '</td>';
+    html += '</tr>';
+  });
+
+  html += '<tr style="background:#F4F6FA">';
+  html += '<td class="center" style="font-size:10px;color:#9BA3B2">신규</td>';
+  html += '<td><input placeholder="제품명 입력" id="fc-new-name" style="text-align:left"></td>';
+  html += '<td><input placeholder="매입가" id="fc-new-cost"></td>';
+  html += '<td><input placeholder="판매가" id="fc-new-price" onkeydown="if(event.key===\'Enter\')addFeeCalcFromInput()"></td>';
+  html += '<td class="fc-result"><span class="fc-dash">-</span></td>';
+  html += '<td class="fc-result"><span class="fc-dash">-</span></td>';
+  html += '</tr>';
+
+  body.innerHTML = html;
+}
+
+function calcFeeProfit(price, cost, feeRate) {
+  if (!price || !cost) return null;
+  var vat = price / 11;
+  var fee = price * feeRate;
+  var profit = price - vat - fee - cost;
+  var rate = (profit / price) * 100;
+  return { profit: Math.round(profit), rate: rate };
+}
+
+function formatFeeResult(r) {
+  if (!r) return '<span class="fc-dash">-</span>';
+  var cls = r.profit >= 0 ? 'fc-positive' : 'fc-negative';
+  var sign = r.profit >= 0 ? '+' : '';
+  return '<div class="fc-amount ' + cls + '">' + sign + r.profit.toLocaleString() + '</div>'
+       + '<div class="fc-rate ' + cls + '">' + r.rate.toFixed(2) + '%</div>';
+}
+
+function updateFeeCalcField(idx, field, val) {
+  feeCalcData[idx][field] = val;
+  saveFeeCalc();
+  renderFeeCalc();
+}
+
+function addFeeCalcRow() {
+  feeCalcData.push({ name: '', cost: '', price: '' });
+  saveFeeCalc();
+  renderFeeCalc();
+}
+
+function addFeeCalcFromInput() {
+  var name = document.getElementById('fc-new-name').value.trim();
+  var cost = document.getElementById('fc-new-cost').value.trim();
+  var price = document.getElementById('fc-new-price').value.trim();
+  if (!name && !cost && !price) return;
+  feeCalcData.push({ name: name, cost: cost, price: price });
+  saveFeeCalc();
+  renderFeeCalc();
+}
+
+function removeFeeCalcRow(idx) {
+  feeCalcData.splice(idx, 1);
+  saveFeeCalc();
+  renderFeeCalc();
+}
+
+function clearFeeCalc() {
+  if (!feeCalcData.length) return;
+  if (!confirm('수수료 계산기 데이터를 모두 삭제하시겠습니까?')) return;
+  feeCalcData = [];
+  saveFeeCalc();
+  renderFeeCalc();
+}
+
 function renderSales() {
   const naverFee = DB.settings.naverFee || 0.0663;
   const openElecFee = DB.settings.openElecFee || 0.13;

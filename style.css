@@ -228,6 +228,18 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
 .dm-label { flex: 1; font-size: 13px; font-weight: 500; color: #1A1D23; }
 .dm-badge { font-size: 11px; font-weight: 600; color: #5A6070; background: #DDE1EB; padding: 2px 8px; border-radius: 4px; }
 
+/* Fee Calculator */
+.fee-calc-badge { font-size:11px; color:#5A6070; background:#EAECF2; padding:2px 8px; border-radius:4px; font-weight:500; }
+#fee-calc-table td input { width:100%; height:30px; border:1px solid #DDE1EB; border-radius:4px; padding:0 8px; font-size:12px; text-align:right; font-family:'Pretendard',sans-serif; color:#1A1D23; background:#FFF; }
+#fee-calc-table td input:focus { border-color:#185FA5; outline:none; }
+#fee-calc-table td input::placeholder { color:#9BA3B2; text-align:center; }
+.fc-result { text-align:center; line-height:1.4; }
+.fc-amount { font-size:12px; font-weight:600; }
+.fc-rate { font-size:10px; font-weight:600; }
+.fc-positive { color:#1D9E75; }
+.fc-negative { color:#CC2222; }
+.fc-dash { color:#9BA3B2; font-size:12px; }
+
 /* Toast */
 .toast { position: fixed; top: 60px; right: 20px; background: #1A1D23; color: white; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500; z-index: 300; transform: translateX(120%); transition: transform 0.3s; }
 .toast.show { transform: translateX(0); }
