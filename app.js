@@ -2110,13 +2110,35 @@ function insertOsRowAfter(idx) {
 }
 
 function importOnlineSalesCumul() {
-  var cumulPromos = DB.promotions.filter(function(p) {
-    return p.promoName && p.promoName.indexOf('누적') >= 0;
+  var added=0, skipped=0, foundCodes={};
+
+  // 1차: poOrderData (발주 확정 전)
+  poOrderData.forEach(function(item) {
+    var hasCumul = (String(item.promoNo||'').indexOf('누적')>=0) || (String(item.promoName||'').indexOf('누적')>=0);
+    if (!hasCumul) return;
+    var code = String(item.code||'');
+    if (!code || code==='-') return;
+    if (foundCodes[code]) return;
+    foundCodes[code] = true;
+    if (onlineSalesData.some(function(d){return String(d.code)===code})) { skipped++; return; }
+    var p = DB.products.find(function(pr){return String(pr.code)===code});
+    var stock = findStock(code);
+    var ec = getEffectiveCost(code);
+    onlineSalesData.push({
+      date:todayStr(), code:code, model:item.model||(p?p.model:''), stock:stock!=null?stock:0,
+      vendor:'', price:p?(p.supplyPrice||0):(item.basePrice||0), promoCost:ec.cost||item.promoPrice||0,
+      naverPrice:0, openPrice:0, promoName:item.promoName||''
+    });
+    added++;
   });
-  if (!cumulPromos.length) { toast('누적 프로모션 제품이 없습니다'); return; }
-  var added=0, skipped=0;
-  cumulPromos.forEach(function(promo) {
+
+  // 2차: DB.promotions (발주 확정 후)
+  DB.promotions.forEach(function(promo) {
+    var hasCumul = (String(promo.promoCode||'').indexOf('누적')>=0) || (String(promo.promoName||'').indexOf('누적')>=0);
+    if (!hasCumul) return;
     var code = String(promo.code);
+    if (foundCodes[code]) return;
+    foundCodes[code] = true;
     if (onlineSalesData.some(function(d){return String(d.code)===code})) { skipped++; return; }
     var p = DB.products.find(function(pr){return String(pr.code)===code});
     var stock = findStock(code);
@@ -2127,7 +2149,9 @@ function importOnlineSalesCumul() {
     });
     added++;
   });
-  saveOnlineSales();renderOnlineSales();
+
+  if (!added && !skipped) { toast('누적 프로모션 제품이 없습니다. 발주 > 프로모션 > 프로모션 발주에 먼저 등록하세요.'); return; }
+  saveOnlineSales(); renderOnlineSales();
   toast(added+'건 누적P 불러오기 완료'+(skipped>0?' ('+skipped+'건 중복 제외)':''));
 }
 
