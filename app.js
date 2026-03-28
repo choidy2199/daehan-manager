@@ -257,6 +257,7 @@ function switchTab(tab) {
   if (tab === 'setbun') renderSetbun();
   if (tab === 'estimate') renderEstimateList();
   if (tab === 'general') renderGenProducts();
+  if (tab === 'manage') loadFeeSettings();
 }
 
 function switchOrderMain(type) {
@@ -4423,6 +4424,43 @@ function init() {
     const recentPo = poHistory.filter(r => (now - new Date(r.date).getTime()) < weekMs);
     if (recentPo.length) updatePoSheetButtons(true);
   })();
+}
+
+// ======================== 관리: 수수료 설정 ========================
+function loadFeeSettings() {
+  var s = DB.settings;
+  document.getElementById('fee-naver-sale').value = (s.naverSaleRate || 3.0);
+  document.getElementById('fee-naver-pay').value = (s.naverPayRate || 3.63);
+  document.getElementById('fee-coupang-sale').value = (s.coupangFee || 10.8);
+  document.getElementById('fee-open-elec').value = ((s.openElecFee || 0.13) * 100).toFixed(1);
+  document.getElementById('fee-open-hand').value = ((s.openHandFee || 0.176) * 100).toFixed(1);
+  document.getElementById('fee-domae').value = ((s.domaeFee || 0.01) * 100).toFixed(1);
+  updateNaverTotal();
+}
+
+function updateNaverTotal() {
+  var sale = parseFloat(document.getElementById('fee-naver-sale').value) || 0;
+  var pay = parseFloat(document.getElementById('fee-naver-pay').value) || 0;
+  document.getElementById('fee-naver-total').textContent = (sale + pay).toFixed(2) + '%';
+}
+
+function applyCoupangPreset(val) {
+  if (!val) return;
+  document.getElementById('fee-coupang-sale').value = val;
+}
+
+function saveFeeSettings() {
+  var sale = parseFloat(document.getElementById('fee-naver-sale').value) || 3.0;
+  var pay = parseFloat(document.getElementById('fee-naver-pay').value) || 3.63;
+  DB.settings.naverSaleRate = sale;
+  DB.settings.naverPayRate = pay;
+  DB.settings.naverFee = (sale + pay) / 100;
+  DB.settings.coupangFee = parseFloat(document.getElementById('fee-coupang-sale').value) || 10.8;
+  DB.settings.openElecFee = (parseFloat(document.getElementById('fee-open-elec').value) || 13) / 100;
+  DB.settings.openHandFee = (parseFloat(document.getElementById('fee-open-hand').value) || 17.6) / 100;
+  DB.settings.domaeFee = (parseFloat(document.getElementById('fee-domae').value) || 1) / 100;
+  save(KEYS.settings, DB.settings);
+  toast('수수료 설정 저장 완료');
 }
 
 init();
