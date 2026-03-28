@@ -284,13 +284,17 @@ function switchOrderMain(type) {
   const normalWrap = document.getElementById('order-normal-wrap');
   const promoWrap = document.getElementById('order-promo-wrap');
 
+  var kpiBar = document.getElementById('order-kpi-bar');
+
   if (type === 'normal') {
     normalWrap.style.display = 'block';
     promoWrap.style.display = 'none';
+    if (kpiBar) kpiBar.style.display = 'flex';
     switchOrderSub('elec');
   } else if (type === 'promo') {
     normalWrap.style.display = 'none';
     promoWrap.style.display = 'block';
+    if (kpiBar) kpiBar.style.display = 'none';
     switchPromoSub('po');
   }
 }

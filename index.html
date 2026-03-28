@@ -107,22 +107,22 @@
       <button class="sub-tab active" onclick="switchOrderMain('normal')">일반주문</button>
       <button class="sub-tab" onclick="switchOrderMain('promo')">프로모션</button>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <div style="display:flex;gap:5px;align-items:center;background:#1A1D23;border-radius:5px;padding:4px 10px">
-        <span style="font-size:10px;color:rgba(255,255,255,0.6)">전동공구</span>
-        <span style="font-size:13px;font-weight:700;color:#FFF" id="order-elec-total">0</span>
+    <div id="order-kpi-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;align-items:center;background:#1A1D23;border-radius:6px;padding:8px 20px">
+        <span style="font-size:12px;color:rgba(255,255,255,0.6)">전동공구</span>
+        <span style="font-size:18px;font-weight:700;color:#FFF" id="order-elec-total">0</span>
       </div>
-      <div style="display:flex;gap:5px;align-items:center;background:#F4F6FA;border-radius:5px;padding:4px 10px;border:1px solid #DDE1EB">
-        <span style="font-size:10px;color:#5A6070">수공구</span>
-        <span style="font-size:13px;font-weight:700;color:#1A1D23" id="order-hand-total">-</span>
+      <div style="display:flex;gap:8px;align-items:center;background:#F4F6FA;border-radius:6px;padding:8px 20px;border:1px solid #DDE1EB">
+        <span style="font-size:12px;color:#5A6070">수공구</span>
+        <span style="font-size:18px;font-weight:700;color:#1A1D23" id="order-hand-total">-</span>
       </div>
-      <div style="display:flex;gap:5px;align-items:center;background:#F4F6FA;border-radius:5px;padding:4px 10px;border:1px solid #DDE1EB">
-        <span style="font-size:10px;color:#5A6070">팩아웃</span>
-        <span style="font-size:13px;font-weight:700;color:#1A1D23" id="order-pack-total">-</span>
+      <div style="display:flex;gap:8px;align-items:center;background:#F4F6FA;border-radius:6px;padding:8px 20px;border:1px solid #DDE1EB">
+        <span style="font-size:12px;color:#5A6070">팩아웃</span>
+        <span style="font-size:18px;font-weight:700;color:#1A1D23" id="order-pack-total">-</span>
       </div>
-      <div style="display:flex;gap:5px;align-items:center;background:#CC2222;border-radius:5px;padding:4px 10px">
-        <span style="font-size:10px;color:rgba(255,255,255,0.7)">발주 합계</span>
-        <span style="font-size:13px;font-weight:700;color:#FFF" id="order-grand-total">0</span>
+      <div style="display:flex;gap:8px;align-items:center;background:#CC2222;border-radius:6px;padding:8px 20px">
+        <span style="font-size:12px;color:rgba(255,255,255,0.7)">발주 합계</span>
+        <span style="font-size:18px;font-weight:700;color:#FFF" id="order-grand-total">0</span>
       </div>
     </div>
     <button class="btn-action" onclick="showOrderSettingsModal()" style="padding:6px 14px;flex-shrink:0">⚙ 커머셜 프로모션 설정</button>
