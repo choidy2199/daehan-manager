@@ -821,7 +821,7 @@ function sortProducts(list) {
     const oa = getSubcatOrder(a.subcategory);
     const ob = getSubcatOrder(b.subcategory);
     if (oa !== ob) return oa - ob;
-    return (a.model || '').localeCompare(b.model || '');
+    return String(a.model || '').localeCompare(String(b.model || ''));
   });
 }
 
