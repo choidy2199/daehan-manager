@@ -21,7 +21,7 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
 .nav-tab.active, .nav-tab:hover { background: rgba(255,255,255,0.2); color: white; }
 /* Nav sector groups */
 .nav-sector { display: flex; align-items: center; gap: 3px; padding: 0 10px; height: 100%; }
-.nav-sector-label { font-size: 9px; font-weight: 500; padding: 2px 7px; border-radius: 3px; margin-right: 4px; white-space: nowrap; letter-spacing: 0.3px; }
+.nav-sector-label { font-size: 13px; font-weight: 500; padding: 2px 7px; border-radius: 3px; margin-right: 4px; white-space: nowrap; letter-spacing: 0.3px; }
 .nav-sector-milwaukee { border-bottom: 3px solid var(--tl-danger); }
 .label-milwaukee { background: var(--tl-danger); color: white; }
 .nav-sector-general { border-bottom: 3px solid var(--tl-warning); }
@@ -30,6 +30,8 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
 .label-sales { background: rgba(29,158,117,0.35); color: #A8F0D8; }
 .nav-sector-estimate { border-bottom: 3px solid #7F77DD; }
 .label-estimate { background: rgba(127,119,221,0.4); color: #CECBF6; }
+.nav-sector-manage { border-bottom: 3px solid #185FA5; }
+.label-manage { background: rgba(24,95,165,0.4); color: #B5D4F4; }
 .nav-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.2); margin: 0 8px; flex-shrink: 0; align-self: center; }
 .btn-ghost { background: rgba(255,255,255,0.15); color: #FFFFFF; border: 1px solid rgba(255,255,255,0.35); border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Pretendard', sans-serif; transition: all 0.2s; }
 .btn-ghost:hover { background: rgba(255,255,255,0.3); }
