@@ -1484,7 +1484,7 @@ function findCodeByModel(model, ttiNum) {
   if (!model && !ttiNum) return '';
   const p = DB.products.find(pr => {
     if (ttiNum && String(pr.ttiNum) === String(ttiNum)) return true;
-    if (model && pr.model && pr.model.toLowerCase() === model.toLowerCase()) return true;
+    if (model && pr.model && String(pr.model).toLowerCase() === String(model).toLowerCase()) return true;
     return false;
   });
   return p ? String(p.code) : '';
