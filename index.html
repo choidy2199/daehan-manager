@@ -39,7 +39,7 @@
     <div class="nav-divider"></div>
     <div class="nav-sector nav-sector-manage">
       <span class="nav-sector-label label-manage">관리</span>
-      <button class="nav-tab" onclick="switchTab('manage')">수수료 설정</button>
+      <button class="nav-tab" onclick="switchTab('manage')">관리</button>
     </div>
   </div>
 </nav>
@@ -696,6 +696,11 @@
 
 <!-- =============== TAB 8: 관리 =============== -->
 <div id="tab-manage" class="tab-content">
+  <div class="sub-tabs" id="manage-sub-tabs">
+    <button class="sub-tab active" onclick="switchManageSub('fee')">수수료 설정</button>
+  </div>
+
+  <div id="manage-fee" class="manage-tab-content">
   <div class="section">
     <div class="section-header">
       <span>온라인 판매채널 수수료 설정</span>
@@ -787,6 +792,7 @@
 
     </div>
   </div>
+  </div><!-- /manage-fee -->
 </div>
 
 </div><!-- /content -->
