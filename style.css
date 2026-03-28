@@ -83,7 +83,7 @@ body { font-family: 'Pretendard', -apple-system, sans-serif; background: #F4F6FA
 .content { max-width: 100%; margin: 0 auto; padding: 16px 24px 40px; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-#tab-catalog.active { display: flex; flex-direction: column; height: calc(100vh - 100px); overflow: hidden; }
+#tab-catalog.active { display: flex; flex-direction: column; height: calc(100vh - 140px); overflow: hidden; }
 
 /* Section */
 .section { margin-bottom: 20px; border-radius: 6px; overflow: hidden; border: 1px solid var(--tl-border); }
