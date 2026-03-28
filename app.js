@@ -4842,44 +4842,84 @@ function calcSetbun(item) {
   return { setP, bareP, setCost, bareCost, bat1Price, bat2Price, chargerPrice, partsTotal, disassembledCost, diff, verdict };
 }
 
-function renderSetbun() {
-  const body = document.getElementById('setbun-body');
-  body.innerHTML = setbunItems.map((item, i) => {
-    const r = calcSetbun(item);
-    const isSet = r.diff > 0;
-    const verdictStyle = isSet ? 'background:#E6F9F1;color:#1D9E75;font-weight:700' : 'background:#FCEBEB;color:#CC2222;font-weight:700';
-    const bat1Label = item.bat1 ? PARTS_LABELS[item.bat1] : '-';
-    const bat2Label = item.bat2 ? PARTS_LABELS[item.bat2] : '-';
-    const chargerLabel = item.charger ? PARTS_LABELS[item.charger] : '-';
+function calcSetbunPromo(item) {
+  var setP = findProduct(item.setCode);
+  var bareP = findProduct(item.bareCode);
+  var setEC = getEffectiveCost(item.setCode);
+  var bareEC = getEffectiveCost(item.bareCode);
+  var setCost = setEC.cost || (setP ? setP.cost : 0);
+  var bareCost = bareEC.cost || (bareP ? bareP.cost : 0);
+  var bat1Price = getPartPrice(item.bat1);
+  var bat2Price = getPartPrice(item.bat2);
+  var chargerPrice = getPartPrice(item.charger);
+  var partsTotal = bat1Price + bat2Price + chargerPrice;
+  var disassembledCost = setCost - partsTotal;
+  var diff = bareCost - disassembledCost;
+  return { setP:setP, bareP:bareP, setCost:setCost, bareCost:bareCost, bat1Price:bat1Price, bat2Price:bat2Price, chargerPrice:chargerPrice, partsTotal:partsTotal, disassembledCost:disassembledCost, diff:diff, verdict: diff > 0 ? '세트발주' : '베어툴발주' };
+}
 
-    return `<tr>
-      <td style="white-space:nowrap;text-align:center">
-        <button class="btn-edit" onclick="editSetbunItem(${i})">수정</button>
-        <button class="btn-danger btn-sm" onclick="deleteSetbunItem(${i})" style="padding:2px 6px;font-size:11px">삭제</button>
-      </td>
-      <td class="center">${item.setCode}</td>
-      <td class="center" style="font-weight:500">${r.setP ? r.setP.model : '-'}</td>
-      <td class="num" style="color:#1D9E75">${fmt(r.setCost)}</td>
-      <td class="center">${item.bareCode}</td>
-      <td class="center" style="font-weight:500">${r.bareP ? r.bareP.model : '-'}</td>
-      <td class="num" style="color:#1D9E75">${fmt(r.bareCost)}</td>
-      <td class="center" style="font-size:11px">${bat1Label}<br><span style="color:#5A6070">${r.bat1Price ? fmt(r.bat1Price) : '-'}</span></td>
-      <td class="center" style="font-size:11px">${bat2Label}<br><span style="color:#5A6070">${r.bat2Price ? fmt(r.bat2Price) : '-'}</span></td>
-      <td class="center" style="font-size:11px">${chargerLabel}<br><span style="color:#5A6070">${r.chargerPrice ? fmt(r.chargerPrice) : '-'}</span></td>
-      <td class="num" style="font-weight:600">${fmt(r.partsTotal)}</td>
-      <td class="num" style="font-weight:600">${fmt(r.disassembledCost)}</td>
-      <td class="num" style="font-weight:700;${isSet ? 'color:#1D9E75' : 'color:#CC2222'}">${r.diff > 0 ? '+' : ''}${fmt(r.diff)}</td>
-      <td class="center" style="font-size:11px">${item.promo || '-'}</td>
-      <td style="${verdictStyle};text-align:center">${r.verdict}</td>
-    </tr>`;
-  }).join('');
+function renderSetbun() {
+  var normalBody = document.getElementById('setbun-body-normal');
+  var promoBody = document.getElementById('setbun-body-promo');
+  if (!normalBody || !promoBody) return;
+  var normalHtml = '', promoHtml = '', verdictChanges = 0;
+
+  setbunItems.forEach(function(item, i) {
+    var rn = calcSetbun(item);
+    var rp = calcSetbunPromo(item);
+    if (rn.verdict !== rp.verdict) verdictChanges++;
+    var isSetN = rn.diff > 0, isSetP = rp.diff > 0;
+
+    // 좌측 일반
+    normalHtml += '<tr>';
+    normalHtml += '<td style="white-space:nowrap;text-align:center"><button class="btn-edit" onclick="editSetbunItem('+i+')">수정</button> <button class="btn-danger btn-sm" onclick="deleteSetbunItem('+i+')" style="padding:2px 6px;font-size:11px">삭제</button></td>';
+    normalHtml += '<td class="center">'+item.setCode+'</td>';
+    normalHtml += '<td class="center" style="font-weight:500">'+(rn.setP?rn.setP.model:'-')+'</td>';
+    normalHtml += '<td class="num" style="color:#1D9E75">'+fmt(rn.setCost)+'</td>';
+    normalHtml += '<td class="center">'+item.bareCode+'</td>';
+    normalHtml += '<td class="center" style="font-weight:500">'+(rn.bareP?rn.bareP.model:'-')+'</td>';
+    normalHtml += '<td class="num" style="color:#1D9E75">'+fmt(rn.bareCost)+'</td>';
+    normalHtml += '<td class="num" style="font-weight:600">'+fmt(rn.partsTotal)+'</td>';
+    normalHtml += '<td class="num" style="font-weight:600">'+fmt(rn.disassembledCost)+'</td>';
+    normalHtml += '<td class="num" style="font-weight:700;color:'+(isSetN?'#1D9E75':'#CC2222')+'">'+(rn.diff>0?'+':'')+fmt(rn.diff)+'</td>';
+    normalHtml += '<td style="text-align:center;font-weight:700;'+(isSetN?'background:#E6F9F1;color:#1D9E75':'background:#FCEBEB;color:#CC2222')+'">'+rn.verdict+'</td>';
+    normalHtml += '</tr>';
+
+    // 우측 프로모션
+    var setCostDiff = rp.setCost - rn.setCost;
+    var bareCostDiff = rp.bareCost - rn.bareCost;
+    promoHtml += '<tr>';
+    promoHtml += '<td class="center">'+item.setCode+'</td>';
+    promoHtml += '<td class="center" style="font-weight:500">'+(rp.setP?rp.setP.model:'-')+'</td>';
+    promoHtml += '<td class="num"><span style="color:#185FA5;font-weight:600">'+fmt(rp.setCost)+'</span>'+(setCostDiff!==0?'<div style="font-size:9px;color:#CC2222">'+(setCostDiff>0?'+':'')+fmt(setCostDiff)+'</div>':'')+'</td>';
+    promoHtml += '<td class="center">'+item.bareCode+'</td>';
+    promoHtml += '<td class="center" style="font-weight:500">'+(rp.bareP?rp.bareP.model:'-')+'</td>';
+    promoHtml += '<td class="num"><span style="color:#185FA5;font-weight:600">'+fmt(rp.bareCost)+'</span>'+(bareCostDiff!==0?'<div style="font-size:9px;color:#CC2222">'+(bareCostDiff>0?'+':'')+fmt(bareCostDiff)+'</div>':'')+'</td>';
+    promoHtml += '<td class="num" style="font-weight:600">'+fmt(rp.partsTotal)+'</td>';
+    promoHtml += '<td class="num" style="font-weight:600">'+fmt(rp.disassembledCost)+'</td>';
+    promoHtml += '<td class="num" style="font-weight:700;color:'+(isSetP?'#1D9E75':'#CC2222')+'">'+(rp.diff>0?'+':'')+fmt(rp.diff)+'</td>';
+    var verdictChanged = rn.verdict !== rp.verdict;
+    var vBg = isSetP?'background:#E6F9F1;color:#1D9E75':'background:#FCEBEB;color:#CC2222';
+    if (verdictChanged) vBg += ';border:2px solid #EF9F27';
+    promoHtml += '<td style="text-align:center;font-weight:700;'+vBg+'">'+rp.verdict+(verdictChanged?' ⚠':'')+'</td>';
+    promoHtml += '</tr>';
+  });
 
   if (!setbunItems.length) {
-    body.innerHTML = '<tr><td colspan="15"><div class="empty-state"><p>분석 항목이 없습니다</p><button class="btn-action" onclick="addSetbunItem()">+ 분석 추가</button></div></td></tr>';
+    normalHtml = '<tr><td colspan="11"><div class="empty-state"><p>분석 항목이 없습니다</p><button class="btn-action" onclick="addSetbunItem()">+ 분석 추가</button></div></td></tr>';
+    promoHtml = '<tr><td colspan="10"><div class="empty-state"><p>분석 항목이 없습니다</p></div></td></tr>';
   }
-  document.getElementById('setbun-count').textContent = `${setbunItems.length}건`;
-  initColumnResize('setbun-table');
-  initStickyHeader('setbun-table');
+  if (setbunItems.length > 0 && verdictChanges > 0) {
+    promoHtml += '<tr><td colspan="10" style="background:#FAEEDA;text-align:center;font-weight:600;font-size:11px;color:#633806;padding:6px">⚠ 일반 대비 판정 변경: '+verdictChanges+'건</td></tr>';
+  }
+
+  normalBody.innerHTML = normalHtml;
+  promoBody.innerHTML = promoHtml;
+  document.getElementById('setbun-count').textContent = setbunItems.length + '건';
+  initColumnResize('setbun-table-normal');
+  initColumnResize('setbun-table-promo');
+  initStickyHeader('setbun-table-normal');
+  initStickyHeader('setbun-table-promo');
 }
 
 // ======================== MODAL DRAG ========================

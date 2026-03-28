@@ -623,27 +623,40 @@
       </div>
     </div>
     <div class="section-body" style="padding:12px">
-      <div class="table-scroll" style="overflow-x:auto">
-        <table class="data-table" id="setbun-table">
-          <thead><tr>
-            <th style="width:40px"></th>
-            <th>세트 코드</th>
-            <th>세트 모델명</th>
-            <th>세트 원가</th>
-            <th>베어툴 코드</th>
-            <th>베어툴 모델명</th>
-            <th>베어툴 원가</th>
-            <th>배터리1</th>
-            <th>배터리2</th>
-            <th>충전기</th>
-            <th>배터리+충전기 합계</th>
-            <th>분해본체원가</th>
-            <th>차액</th>
-            <th>프로모션</th>
-            <th style="font-weight:700">판정</th>
-          </tr></thead>
-          <tbody id="setbun-body"></tbody>
-        </table>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1;min-width:0;border:1px solid #DDE1EB;border-radius:6px;overflow:hidden">
+          <div style="background:#1A1D23;color:white;padding:0 12px;height:32px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600">
+            <span>일반</span>
+            <span style="font-size:9px;font-weight:500;padding:2px 8px;border-radius:3px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8)">기본 원가 기준</span>
+          </div>
+          <div class="table-scroll" style="overflow-x:auto">
+            <table class="data-table" id="setbun-table-normal" style="font-size:11px">
+              <thead><tr>
+                <th style="width:40px"></th>
+                <th>세트 코드</th><th>세트 모델명</th><th>세트 원가</th>
+                <th>베어툴 코드</th><th>베어툴 모델명</th><th>베어툴 원가</th>
+                <th>배터리+충전기</th><th>분해원가</th><th>차액</th><th>판정</th>
+              </tr></thead>
+              <tbody id="setbun-body-normal"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;border:1px solid #DDE1EB;border-radius:6px;overflow:hidden">
+          <div style="background:#185FA5;color:white;padding:0 12px;height:32px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600">
+            <span>프로모션</span>
+            <span style="font-size:9px;font-weight:500;padding:2px 8px;border-radius:3px;background:rgba(255,255,255,0.2);color:#FFF">프로모션 원가 기준</span>
+          </div>
+          <div class="table-scroll" style="overflow-x:auto">
+            <table class="data-table" id="setbun-table-promo" style="font-size:11px">
+              <thead><tr>
+                <th>세트 코드</th><th>세트 모델명</th><th>세트 원가</th>
+                <th>베어툴 코드</th><th>베어툴 모델명</th><th>베어툴 원가</th>
+                <th>배터리+충전기</th><th>분해원가</th><th>차액</th><th>판정</th>
+              </tr></thead>
+              <tbody id="setbun-body-promo"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
