@@ -692,6 +692,22 @@ function renderCatalog() {
 
   initColumnResize('catalog-table');
   initStickyHeader('catalog-table');
+
+  // 서브탭 건수 업데이트
+  (function updateFilterCounts() {
+    var all = DB.products;
+    var instock = all.filter(function(p) { var s = findStock(p.code); return s != null && s > 0; });
+    var outstock = all.filter(function(p) { var s = findStock(p.code); return s != null && s <= 0; });
+    var disc = all.filter(function(p) { return !!p.discontinued; });
+    var nocode = all.filter(function(p) { return !p.manageCode || p.manageCode.trim() === '' || p.manageCode === '-'; });
+
+    var tabs = document.querySelectorAll('#catalog-filter-tabs .sub-tab');
+    if (tabs[0]) tabs[0].textContent = '전체제품(' + all.length + ')';
+    if (tabs[1]) tabs[1].textContent = '재고있음(' + instock.length + ')';
+    if (tabs[2]) tabs[2].textContent = '재고없음(' + outstock.length + ')';
+    if (tabs[3]) tabs[3].textContent = '단종(' + disc.length + ')';
+    if (tabs[4]) tabs[4].textContent = '관리코드없음(' + nocode.length + ')';
+  })();
 }
 
 function toggleDiscontinued(idx, checked) {
