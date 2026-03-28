@@ -1826,7 +1826,7 @@ function removeSalesRow(idx) {
 }
 
 function calcSalesProfit(sellPrice, feeRate, cost) {
-  const vat = parseFloat(document.getElementById('sales-vat').value) / 100 || 0.1;
+  const vat = DB.settings.vat || 0.1;
   const fee = feeRate;
   // 판매원가 = (판매가 * (1 - 수수료율)) / (1 + 부가세율)
   const revenue = (sellPrice * (1 - fee)) / (1 + vat);
@@ -1836,8 +1836,8 @@ function calcSalesProfit(sellPrice, feeRate, cost) {
 }
 
 function renderSales() {
-  const naverFee = parseFloat(document.getElementById('sales-naver-fee').value) / 100 || 0.059;
-  const openElecFee = parseFloat(document.getElementById('sales-open-elec-fee').value) / 100 || 0.13;
+  const naverFee = DB.settings.naverFee || 0.0663;
+  const openElecFee = DB.settings.openElecFee || 0.13;
 
   const body = document.getElementById('sales-body');
   body.innerHTML = salesItems.map((item, i) => {
@@ -2621,10 +2621,6 @@ function recalcAll() {
 
   // Update all visible UI
   renderCatalog();
-  document.getElementById('sales-vat').value = (s.vat * 100).toFixed(1);
-  document.getElementById('sales-naver-fee').value = (s.naverFee * 100).toFixed(1);
-  document.getElementById('sales-open-elec-fee').value = (s.openElecFee * 100).toFixed(1);
-  document.getElementById('sales-open-hand-fee').value = (s.openHandFee * 100).toFixed(1);
 }
 
 // ======================== PROMO CRUD ========================
@@ -4400,11 +4396,6 @@ function init() {
   populateCatalogFilters();
   renderCatalog();
   updateStatus();
-  // Populate sales fee rates from stored settings
-  document.getElementById('sales-vat').value = ((DB.settings.vat || 0.1) * 100).toFixed(1);
-  document.getElementById('sales-naver-fee').value = ((DB.settings.naverFee || 0.059) * 100).toFixed(1);
-  document.getElementById('sales-open-elec-fee').value = ((DB.settings.openElecFee || 0.13) * 100).toFixed(1);
-  document.getElementById('sales-open-hand-fee').value = ((DB.settings.openHandFee || 0.176) * 100).toFixed(1);
   initPromoMonths();
   loadPartsPricesUI();
   renderSetbun();
