@@ -1917,6 +1917,8 @@ function renderFeeCalc() {
   html += '</tr>';
 
   body.innerHTML = html;
+  initColumnResize('fee-calc-table');
+  initStickyHeader('fee-calc-table');
 }
 
 function calcFeeProfit(price, cost, feeRate) {
@@ -2011,6 +2013,8 @@ function renderSales() {
   if (!salesItems.length) {
     body.innerHTML = '<tr><td colspan="11"><div class="empty-state"><p>판매 항목을 추가하세요</p><button class="btn-action" onclick="addSalesRow()">+ 추가</button></div></td></tr>';
   }
+  initColumnResize('sales-table');
+  initStickyHeader('sales-table');
 }
 
 function calcAllSales() { renderSales(); }
@@ -4043,6 +4047,8 @@ function searchEstProducts(val) {
       <td style="text-align:left;font-size:12px;white-space:nowrap;padding-left:8px">${p.inDate ? '<span style="color:#CC2222;margin-right:4px">●</span>' + p.inDate : '-'}</td>
     </tr>`;
   }).join('');
+  initColumnResize('est-search-table');
+  initStickyHeader('est-search-table');
 }
 
 function showEstimateList() {
@@ -4165,6 +4171,8 @@ function renderEstimateItems() {
   }
   const totalVat = Math.round(total * 0.1);
   document.getElementById('est-total').innerHTML = `${fmt(total)} <span style="font-size:13px;color:#5A6070;font-weight:400">+</span> <span style="font-size:14px;color:#5A6070">부가세 ${fmt(totalVat)}</span> <span style="font-size:13px;color:#5A6070;font-weight:400">=</span> <span style="font-size:18px;color:#CC2222">토탈 ${fmt(total + totalVat)}</span>`;
+  initColumnResize('est-table');
+  initStickyHeader('est-table');
 }
 
 function onEstPriceChange(idx, val) {
@@ -4563,6 +4571,8 @@ function renderSetbun() {
     body.innerHTML = '<tr><td colspan="15"><div class="empty-state"><p>분석 항목이 없습니다</p><button class="btn-action" onclick="addSetbunItem()">+ 분석 추가</button></div></td></tr>';
   }
   document.getElementById('setbun-count').textContent = `${setbunItems.length}건`;
+  initColumnResize('setbun-table');
+  initStickyHeader('setbun-table');
 }
 
 // ======================== MODAL DRAG ========================
