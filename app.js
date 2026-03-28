@@ -207,7 +207,7 @@ function searchProducts(query) {
   if (!query || query.length < 1) return [];
   const q = query.toLowerCase();
   return DB.products.filter(p => {
-    return String(p.code).includes(q) || (p.model || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    return String(p.code).includes(q) || String(p.model || '').toLowerCase().includes(q) || String(p.description || '').toLowerCase().includes(q);
   }).slice(0, 15);
 }
 
@@ -335,7 +335,7 @@ function showSheetAC(input, type) {
     if (p.discontinued) return false;
     return String(p.orderNum || '').includes(q) ||
            String(p.code).includes(q) ||
-           (p.model || '').toLowerCase().includes(q);
+           String(p.model || '').toLowerCase().includes(q);
   }).slice(0, 10);
 
   if (!results.length) { acDiv.style.display = 'none'; return; }
@@ -424,8 +424,8 @@ function showOrderSearchAC(input, type) {
     if (p.discontinued) return false;
     return String(p.code).includes(q) ||
            String(p.orderNum || '').includes(q) ||
-           (p.model || '').toLowerCase().includes(q) ||
-           (p.description || '').toLowerCase().includes(q);
+           String(p.model || '').toLowerCase().includes(q) ||
+           String(p.description || '').toLowerCase().includes(q);
   }).slice(0, 15);
 
   if (!results.length) {
