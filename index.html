@@ -806,6 +806,11 @@
 
 <!-- =============== TAB 8: 관리 =============== -->
 <div id="tab-manage" class="tab-content">
+  <div class="sub-tabs" id="settings-main-tabs" style="margin-bottom:8px">
+    <button class="sub-tab active" onclick="switchSettingsMain('fee')">온라인 판매채널 수수료</button>
+    <button class="sub-tab" onclick="switchSettingsMain('client')">거래처 등록</button>
+  </div>
+  <div id="settings-sub-fee">
   <div class="section">
     <div class="section-header">
       <span>온라인 판매채널 수수료 설정</span>
@@ -872,6 +877,53 @@
 
     </div>
   </div>
+  </div><!-- /settings-sub-fee -->
+
+  <div id="settings-sub-client" style="display:none">
+    <div class="section">
+      <div class="section-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span>거래처 등록</span>
+          <span style="font-size:12px;font-weight:400;opacity:0.7" id="client-count">0건</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-action-sub" onclick="downloadClientTemplate()">📥 엑셀 양식 다운</button>
+          <button class="btn-action-sub" onclick="document.getElementById('client-upload-input').click()">📤 엑셀 일괄등록</button>
+          <input type="file" id="client-upload-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadClients(this)">
+          <button class="btn-action" onclick="addClient()">+ 개별 등록</button>
+        </div>
+      </div>
+      <div class="section-body" style="padding:0">
+        <div style="padding:10px 12px 8px">
+          <input class="input" id="client-search" placeholder="상호명, 사업자번호, 대표자명, 코드 검색..." style="max-width:400px" oninput="renderClients()">
+        </div>
+        <div class="table-scroll" style="overflow-x:auto">
+          <table class="data-table" id="client-table">
+            <thead><tr>
+              <th style="width:36px"></th>
+              <th>코드</th>
+              <th>상호명</th>
+              <th>사업자등록증</th>
+              <th>대표자명</th>
+              <th>전화</th>
+              <th>핸드폰</th>
+              <th>팩스</th>
+              <th>관리코드</th>
+              <th>우편</th>
+              <th>주소</th>
+              <th>업태</th>
+              <th>종목</th>
+              <th>이메일</th>
+              <th>은행계좌</th>
+              <th style="width:50px">수정</th>
+            </tr></thead>
+            <tbody id="client-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- /settings-sub-client -->
+
 </div>
 
 </div><!-- /content -->

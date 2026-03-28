@@ -273,7 +273,7 @@ function switchTab(tab) {
   if (tab === 'setbun') renderSetbun();
   if (tab === 'estimate') renderEstimateList();
   if (tab === 'general') renderGenProducts();
-  if (tab === 'manage') loadFeeSettings();
+  if (tab === 'manage') { loadFeeSettings(); switchSettingsMain('fee'); }
 }
 
 function switchOrderMain(type) {
@@ -5195,6 +5195,167 @@ function saveFeeSettings() {
   DB.settings.feeVatMode = 'incl';
   save(KEYS.settings, DB.settings);
   toast('수수료 설정 저장 완료');
+}
+
+// ======================== 설정 서브탭: 거래처 등록 ========================
+var clientData = loadObj('mw_clients', []);
+
+function switchSettingsMain(type) {
+  document.getElementById('settings-sub-fee').style.display = type === 'fee' ? '' : 'none';
+  document.getElementById('settings-sub-client').style.display = type === 'client' ? '' : 'none';
+  var tabs = document.querySelectorAll('#settings-main-tabs .sub-tab');
+  tabs[0].classList.toggle('active', type === 'fee');
+  tabs[1].classList.toggle('active', type === 'client');
+  if (type === 'client') renderClients();
+}
+
+function saveClients() {
+  localStorage.setItem('mw_clients', JSON.stringify(clientData));
+}
+
+function renderClients() {
+  var search = (document.getElementById('client-search').value || '').toLowerCase();
+  var filtered = clientData;
+  if (search) {
+    filtered = clientData.filter(function(c) {
+      return String(c.code || '').toLowerCase().includes(search) ||
+             String(c.name || '').toLowerCase().includes(search) ||
+             String(c.bizNo || '').includes(search) ||
+             String(c.ceo || '').toLowerCase().includes(search) ||
+             String(c.manageCode || '').toLowerCase().includes(search);
+    });
+  }
+  var body = document.getElementById('client-body');
+  body.innerHTML = filtered.map(function(c) {
+    var ri = clientData.indexOf(c);
+    return '<tr>' +
+      '<td class="center"><span style="color:#CC2222;cursor:pointer;font-size:12px" onclick="removeClient(' + ri + ')">✕</span></td>' +
+      '<td class="center" style="font-weight:600">' + (c.code || '-') + '</td>' +
+      '<td style="text-align:left;font-weight:500">' + (c.name || '-') + '</td>' +
+      '<td class="center">' + (c.bizNo || '-') + '</td>' +
+      '<td class="center">' + (c.ceo || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.phone || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.mobile || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.fax || '-') + '</td>' +
+      '<td class="center">' + (c.manageCode || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.zip || '-') + '</td>' +
+      '<td style="text-align:left;font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (c.address || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.bizType || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.bizItem || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.email || '-') + '</td>' +
+      '<td class="center" style="font-size:10px">' + (c.bankAccount || '-') + '</td>' +
+      '<td class="center"><button class="btn-primary" onclick="editClient(' + ri + ')" style="padding:2px 6px;font-size:9px">수정</button></td>' +
+      '</tr>';
+  }).join('');
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="16"><div class="empty-state"><p>거래처가 없습니다</p><p style="font-size:12px;color:#9BA3B2">엑셀 일괄등록 또는 + 개별 등록으로 추가하세요</p></div></td></tr>';
+  }
+  document.getElementById('client-count').textContent = clientData.length + '건';
+  initColumnResize('client-table');
+  initStickyHeader('client-table');
+}
+
+function addClient() {
+  var name = prompt('상호명');
+  if (!name) return;
+  var bizNo = prompt('사업자등록증 (예: 123-45-67890)') || '';
+  var ceo = prompt('대표자명') || '';
+  var phone = prompt('전화') || '';
+  var mobile = prompt('핸드폰') || '';
+  var code = 'C' + String(clientData.length + 1).padStart(3, '0');
+  clientData.push({
+    id: Date.now(), code: code, name: name, bizNo: bizNo, phone: phone, mobile: mobile,
+    fax: '', manageCode: '', ceo: ceo, zip: '', address: '', bizType: '', bizItem: '', email: '', bankAccount: ''
+  });
+  saveClients();
+  renderClients();
+  toast('거래처 등록 완료: ' + name);
+}
+
+function editClient(idx) {
+  var c = clientData[idx];
+  var name = prompt('상호명', c.name);
+  if (name === null) return;
+  c.name = name;
+  c.bizNo = prompt('사업자등록증', c.bizNo) || c.bizNo;
+  c.ceo = prompt('대표자명', c.ceo) || c.ceo;
+  c.phone = prompt('전화', c.phone) || c.phone;
+  c.mobile = prompt('핸드폰', c.mobile) || c.mobile;
+  c.fax = prompt('팩스', c.fax) || c.fax;
+  c.manageCode = prompt('관리코드', c.manageCode) || c.manageCode;
+  c.zip = prompt('우편번호', c.zip) || c.zip;
+  c.address = prompt('주소', c.address) || c.address;
+  c.bizType = prompt('업태', c.bizType) || c.bizType;
+  c.bizItem = prompt('종목', c.bizItem) || c.bizItem;
+  c.email = prompt('이메일', c.email) || c.email;
+  c.bankAccount = prompt('은행계좌', c.bankAccount) || c.bankAccount;
+  saveClients();
+  renderClients();
+  toast('거래처 수정 완료: ' + name);
+}
+
+function removeClient(idx) {
+  if (!confirm(clientData[idx].name + ' 거래처를 삭제하시겠습니까?')) return;
+  clientData.splice(idx, 1);
+  saveClients();
+  renderClients();
+  toast('거래처 삭제 완료');
+}
+
+function downloadClientTemplate() {
+  if (!window.XLSX) { toast('SheetJS 로딩 중'); return; }
+  var data = [['코드','상호명','사업자등록증','전화','핸드폰','팩스','관리코드','대표자명','우편','주소','업태','종목','이메일','은행계좌']];
+  data.push(['C001','아리랑공구','123-45-67890','02-1234-5678','010-1234-5678','02-1234-5679','A01','김철수','04520','서울시 중구 남대문로 123','도소매','공구류','arirang@test.com','국민 123-456-789']);
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:8},{wch:18},{wch:16},{wch:15},{wch:15},{wch:15},{wch:10},{wch:10},{wch:8},{wch:30},{wch:10},{wch:10},{wch:22},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws, '거래처양식');
+  XLSX.writeFile(wb, '거래처_등록양식.xlsx');
+  toast('거래처 엑셀 양식 다운로드 완료');
+}
+
+function uploadClients(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, { type: 'array' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      if (rows.length < 2) { toast('데이터가 없습니다'); return; }
+      var added = 0;
+      for (var i = 1; i < rows.length; i++) {
+        var r = rows[i];
+        if (!r || (!r[0] && !r[1])) continue;
+        clientData.push({
+          id: Date.now() + i,
+          code: String(r[0] || ''),
+          name: String(r[1] || ''),
+          bizNo: String(r[2] || ''),
+          phone: String(r[3] || ''),
+          mobile: String(r[4] || ''),
+          fax: String(r[5] || ''),
+          manageCode: String(r[6] || ''),
+          ceo: String(r[7] || ''),
+          zip: String(r[8] || ''),
+          address: String(r[9] || ''),
+          bizType: String(r[10] || ''),
+          bizItem: String(r[11] || ''),
+          email: String(r[12] || ''),
+          bankAccount: String(r[13] || '')
+        });
+        added++;
+      }
+      saveClients();
+      renderClients();
+      input.value = '';
+      toast(added + '건 거래처 일괄등록 완료');
+    } catch (err) {
+      toast('엑셀 읽기 오류: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 init();
