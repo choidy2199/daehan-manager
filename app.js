@@ -274,6 +274,7 @@ function switchTab(tab) {
   if (tab === 'estimate') renderEstimateList();
   if (tab === 'general') renderGenProducts();
   if (tab === 'manage') { loadFeeSettings(); switchSettingsMain('fee'); }
+  if (tab === 'compare') renderCompareTab();
 }
 
 function switchOrderMain(type) {
@@ -5458,6 +5459,669 @@ function uploadClients(input) {
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ======================== COMPARE TAB (단가표 비교) ========================
+var CMP_KEY_MINE = 'mw_cmp_mine';
+var CMP_KEY_KEYS = 'mw_cmp_keys';
+var cmpMine = null;
+var cmpHQ = null;
+var cmpKeys = ['code'];
+var cmpResult = null;
+
+function cmpEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function cmpEscAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+function renderCompareTab() {
+  try {
+    var saved = localStorage.getItem(CMP_KEY_MINE);
+    if (saved && !cmpMine) cmpMine = JSON.parse(saved);
+  } catch (e) {}
+  try {
+    var k = localStorage.getItem(CMP_KEY_KEYS);
+    if (k) cmpKeys = JSON.parse(k);
+  } catch (e) {}
+  refreshCompareUI();
+}
+
+function saveCmpMine() {
+  if (cmpMine) localStorage.setItem(CMP_KEY_MINE, JSON.stringify(cmpMine));
+}
+function saveCmpKeys() {
+  localStorage.setItem(CMP_KEY_KEYS, JSON.stringify(cmpKeys));
+}
+
+function autoDetectMapping(headers) {
+  var m = { code: '', model: '', name: '', price: '', category: '' };
+  headers.forEach(function(h) {
+    var s = String(h);
+    if (!m.code && /(^|[^가-힣])(코드|code|sku|품번|관리코드|item.?no|item.?code)/i.test(s)) m.code = h;
+    if (!m.model && /(모델|model|규격|spec)/i.test(s) && !/모델명변경/i.test(s)) m.model = h;
+    if (!m.name && /(제품명|품명|name|설명|description|desc|product.?name)/i.test(s)) m.name = h;
+    if (!m.price && /(가격|단가|price|금액|소비자가|정가|소가|출하가|cost)/i.test(s)) m.price = h;
+    if (!m.category && /(카테고리|대분류|분류|category|class|군)/i.test(s)) m.category = h;
+  });
+  return m;
+}
+
+function parseExcelFileForCompare(file, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, { type: 'array' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      var headerIdx = -1;
+      for (var i = 0; i < aoa.length; i++) {
+        var nonEmpty = aoa[i].filter(function(c) { return c !== '' && c != null; }).length;
+        if (nonEmpty >= 2) { headerIdx = i; break; }
+      }
+      if (headerIdx === -1) { toast('빈 파일입니다'); return; }
+      var maxLen = 0;
+      aoa.forEach(function(r) { if (r.length > maxLen) maxLen = r.length; });
+      var rawHeaders = aoa[headerIdx];
+      var headers = [];
+      for (var i = 0; i < maxLen; i++) {
+        var h = rawHeaders[i] != null ? String(rawHeaders[i]).trim() : '';
+        if (!h) h = 'Col' + (i + 1);
+        // De-dup
+        var base = h, n = 2;
+        while (headers.indexOf(h) >= 0) { h = base + '_' + n; n++; }
+        headers.push(h);
+      }
+      var rows = [];
+      for (var i = headerIdx + 1; i < aoa.length; i++) {
+        var r = aoa[i];
+        var hasContent = false;
+        var obj = {};
+        for (var j = 0; j < headers.length; j++) {
+          var v = r[j] != null ? String(r[j]).trim() : '';
+          obj[headers[j]] = v;
+          if (v) hasContent = true;
+        }
+        if (hasContent) rows.push(obj);
+      }
+      cb(headers, rows);
+    } catch (err) {
+      toast('엑셀 읽기 오류: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parsePDFFileForCompare(file, cb) {
+  if (!window.pdfjsLib) { toast('PDF.js 로딩 중입니다. 잠시 후 다시 시도하세요.'); return; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  toast('PDF 분석 중...');
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    pdfjsLib.getDocument({ data: e.target.result }).promise.then(function(pdf) {
+      var pagePromises = [];
+      for (var p = 1; p <= pdf.numPages; p++) {
+        pagePromises.push(pdf.getPage(p).then(function(page) { return page.getTextContent(); }));
+      }
+      Promise.all(pagePromises).then(function(pages) {
+        var allLines = [];
+        pages.forEach(function(text) {
+          var rowsByY = {};
+          text.items.forEach(function(it) {
+            var y = Math.round(it.transform[5]);
+            if (!rowsByY[y]) rowsByY[y] = [];
+            rowsByY[y].push({ x: it.transform[4], str: it.str });
+          });
+          var ys = Object.keys(rowsByY).map(Number).sort(function(a, b) { return b - a; });
+          ys.forEach(function(y) {
+            var line = rowsByY[y].sort(function(a, b) { return a.x - b.x; });
+            // Merge close x positions, split wider gaps as columns
+            var cells = [];
+            var cur = '';
+            var lastX = null;
+            line.forEach(function(it) {
+              if (lastX !== null && (it.x - lastX) > 15) {
+                if (cur.trim()) cells.push(cur.trim());
+                cur = it.str;
+              } else {
+                cur += it.str;
+              }
+              lastX = it.x + (it.width || 0);
+            });
+            if (cur.trim()) cells.push(cur.trim());
+            if (cells.length) allLines.push(cells);
+          });
+        });
+        if (!allLines.length) { toast('PDF에서 텍스트를 찾을 수 없습니다'); return; }
+        // Choose header: row with most cells in first 10 lines
+        var headerIdx = 0, maxCells = 0;
+        for (var i = 0; i < Math.min(10, allLines.length); i++) {
+          if (allLines[i].length > maxCells) { maxCells = allLines[i].length; headerIdx = i; }
+        }
+        var headers = allLines[headerIdx].slice();
+        // Pad header to widest row
+        var widest = 0;
+        allLines.forEach(function(r) { if (r.length > widest) widest = r.length; });
+        while (headers.length < widest) headers.push('Col' + (headers.length + 1));
+        // De-dup headers
+        var seen = {};
+        headers = headers.map(function(h) {
+          h = String(h || '').trim() || 'Col';
+          if (seen[h]) { var n = 2; while (seen[h + '_' + n]) n++; h = h + '_' + n; }
+          seen[h] = true;
+          return h;
+        });
+        var rows = [];
+        for (var i = 0; i < allLines.length; i++) {
+          if (i === headerIdx) continue;
+          var r = allLines[i];
+          var obj = {};
+          var hasContent = false;
+          for (var j = 0; j < headers.length; j++) {
+            var v = (r[j] != null ? String(r[j]).trim() : '');
+            obj[headers[j]] = v;
+            if (v) hasContent = true;
+          }
+          if (hasContent) rows.push(obj);
+        }
+        cb(headers, rows);
+      }).catch(function(err) { toast('PDF 텍스트 추출 오류: ' + err.message); });
+    }).catch(function(err) { toast('PDF 읽기 오류: ' + err.message); });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function uploadCompareMine(input) {
+  var file = input.files[0];
+  if (!file) return;
+  parseExcelFileForCompare(file, function(headers, rows) {
+    var existingMapping = (cmpMine && cmpMine.mapping) ? cmpMine.mapping : null;
+    cmpMine = {
+      fileName: file.name,
+      uploadedAt: new Date().toISOString(),
+      headers: headers,
+      rows: rows,
+      mapping: existingMapping && headers.indexOf(existingMapping.code) >= 0 ? existingMapping : autoDetectMapping(headers)
+    };
+    saveCmpMine();
+    cmpResult = null;
+    refreshCompareUI();
+    toast('내 원본 ' + rows.length + '건 업로드');
+  });
+  input.value = '';
+}
+
+function uploadCompareHQ(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var ext = (file.name.split('.').pop() || '').toLowerCase();
+  var done = function(headers, rows, source) {
+    cmpHQ = { fileName: file.name, source: source, headers: headers, rows: rows, mapping: autoDetectMapping(headers) };
+    cmpResult = null;
+    refreshCompareUI();
+    toast('본사 ' + (source === 'pdf' ? 'PDF 추출' : 'Excel') + ' ' + rows.length + '건');
+  };
+  if (ext === 'pdf') {
+    parsePDFFileForCompare(file, function(h, r) { done(h, r, 'pdf'); });
+  } else {
+    parseExcelFileForCompare(file, function(h, r) { done(h, r, 'excel'); });
+  }
+  input.value = '';
+}
+
+function clearCompareMine() {
+  if (!confirm('내 원본 엑셀을 삭제할까요? (저장된 데이터가 사라집니다)')) return;
+  localStorage.removeItem(CMP_KEY_MINE);
+  cmpMine = null;
+  cmpResult = null;
+  refreshCompareUI();
+  toast('내 원본 삭제');
+}
+
+function clearCompareHQ() {
+  cmpHQ = null;
+  cmpResult = null;
+  refreshCompareUI();
+}
+
+function resetCompareAll() {
+  if (!confirm('내 원본과 본사 파일을 모두 초기화할까요?')) return;
+  localStorage.removeItem(CMP_KEY_MINE);
+  cmpMine = null;
+  cmpHQ = null;
+  cmpResult = null;
+  refreshCompareUI();
+  toast('초기화 완료');
+}
+
+function setCmpMapping(side, field, value) {
+  var t = side === 'mine' ? cmpMine : cmpHQ;
+  if (!t) return;
+  t.mapping[field] = value;
+  if (side === 'mine') saveCmpMine();
+  cmpResult = null;
+  document.getElementById('cmp-results').style.display = 'none';
+}
+
+function toggleCmpKey(field, checked) {
+  if (checked) {
+    if (cmpKeys.indexOf(field) < 0) cmpKeys.push(field);
+  } else {
+    cmpKeys = cmpKeys.filter(function(k) { return k !== field; });
+  }
+  saveCmpKeys();
+  cmpResult = null;
+  document.getElementById('cmp-results').style.display = 'none';
+}
+
+function renderMappingUI(prefix, headers, mapping, showKeys) {
+  var fields = [
+    { k: 'code', l: '코드 (필수)' },
+    { k: 'model', l: '모델명' },
+    { k: 'name', l: '제품명/설명' },
+    { k: 'price', l: '가격' },
+    { k: 'category', l: '카테고리' }
+  ];
+  var html = '<div style="font-size:12px;color:#5A6070;margin-bottom:6px;font-weight:500">컬럼 매핑</div>';
+  html += '<div class="cmp-mapping-grid">';
+  fields.forEach(function(f) {
+    html += '<div><label>' + f.l + '</label>';
+    html += '<select onchange="setCmpMapping(\'' + prefix + '\',\'' + f.k + '\',this.value)">';
+    html += '<option value="">- 선택 -</option>';
+    headers.forEach(function(h) {
+      html += '<option value="' + cmpEscAttr(h) + '"' + (mapping[f.k] === h ? ' selected' : '') + '>' + cmpEsc(h) + '</option>';
+    });
+    html += '</select></div>';
+  });
+  html += '</div>';
+  if (showKeys) {
+    html += '<div class="cmp-key-checks"><b>비교 키:</b> ';
+    fields.forEach(function(f) {
+      html += '<label><input type="checkbox"' + (cmpKeys.indexOf(f.k) >= 0 ? ' checked' : '') + ' onchange="toggleCmpKey(\'' + f.k + '\',this.checked)"> ' + f.k + '</label>';
+    });
+    html += '<span style="color:#9BA3B2;font-size:10px;margin-left:8px">체크된 컬럼들이 모두 일치하면 같은 제품으로 간주합니다 (코드 권장)</span></div>';
+  }
+  return html;
+}
+
+function updateHQHeader(idx, value) {
+  if (!cmpHQ) return;
+  var oldH = cmpHQ.headers[idx];
+  var newH = String(value || '').trim() || ('Col' + (idx + 1));
+  if (newH === oldH) return;
+  // Avoid dup
+  if (cmpHQ.headers.indexOf(newH) >= 0) { toast('이미 사용 중인 컬럼명'); refreshCompareUI(); return; }
+  cmpHQ.headers[idx] = newH;
+  cmpHQ.rows.forEach(function(r) { r[newH] = r[oldH] || ''; delete r[oldH]; });
+  // Update mapping references
+  Object.keys(cmpHQ.mapping).forEach(function(k) { if (cmpHQ.mapping[k] === oldH) cmpHQ.mapping[k] = newH; });
+  cmpResult = null;
+  refreshCompareUI();
+}
+function updateHQCell(rowIdx, header, value) {
+  if (!cmpHQ || !cmpHQ.rows[rowIdx]) return;
+  cmpHQ.rows[rowIdx][header] = String(value || '').trim();
+  cmpResult = null;
+}
+function deleteHQRow(rowIdx) {
+  if (!cmpHQ) return;
+  cmpHQ.rows.splice(rowIdx, 1);
+  cmpResult = null;
+  refreshCompareUI();
+}
+function addHQRow() {
+  if (!cmpHQ) return;
+  var obj = {};
+  cmpHQ.headers.forEach(function(h) { obj[h] = ''; });
+  cmpHQ.rows.push(obj);
+  cmpResult = null;
+  refreshCompareUI();
+}
+
+function renderHQEditPanel() {
+  if (!cmpHQ || cmpHQ.source !== 'pdf') return '';
+  var html = '<div class="cmp-edit-toolbar"><b style="font-size:12px;color:#9B5C0E">⚠️ PDF 추출 결과 - 부정확할 수 있으니 확인/편집하세요</b>';
+  html += '<button class="btn-action-sub" onclick="addHQRow()" style="margin-left:auto">+ 행 추가</button></div>';
+  html += '<div style="max-height:280px;overflow:auto;border:1px solid #DDE1EB;border-radius:4px">';
+  html += '<table class="cmp-edit-table"><thead><tr>';
+  html += '<th style="width:30px"></th>';
+  cmpHQ.headers.forEach(function(h, i) {
+    html += '<th><input value="' + cmpEscAttr(h) + '" onchange="updateHQHeader(' + i + ',this.value)" style="font-weight:600"></th>';
+  });
+  html += '</tr></thead><tbody>';
+  cmpHQ.rows.slice(0, 200).forEach(function(row, ri) {
+    html += '<tr><td style="text-align:center;background:#F8F9FC"><button onclick="deleteHQRow(' + ri + ')" style="background:none;border:none;cursor:pointer;color:#CC2222;font-size:14px">×</button></td>';
+    cmpHQ.headers.forEach(function(h) {
+      var val = row[h] || '';
+      html += '<td><input value="' + cmpEscAttr(val) + '" onchange="updateHQCell(' + ri + ',\'' + cmpEscAttr(h) + '\',this.value)"></td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  if (cmpHQ.rows.length > 200) {
+    html += '<div style="font-size:11px;color:#9BA3B2;margin-top:4px">처음 200행만 표시 (총 ' + cmpHQ.rows.length + '행)</div>';
+  }
+  return html;
+}
+
+function refreshCompareUI() {
+  // Mine
+  var mineStatus = document.getElementById('cmp-mine-status');
+  var mineInfo = document.getElementById('cmp-mine-info');
+  var mineMap = document.getElementById('cmp-mine-mapping');
+  var mineDl = document.getElementById('cmp-mine-download');
+  var mineClr = document.getElementById('cmp-mine-clear');
+  if (cmpMine) {
+    mineStatus.textContent = cmpMine.rows.length + '건';
+    mineStatus.className = 'cmp-badge ok';
+    mineInfo.textContent = '📁 ' + cmpMine.fileName + ' · ' + new Date(cmpMine.uploadedAt).toLocaleString();
+    mineDl.style.display = '';
+    mineClr.style.display = '';
+    mineMap.style.display = '';
+    mineMap.innerHTML = renderMappingUI('mine', cmpMine.headers, cmpMine.mapping, true);
+  } else {
+    mineStatus.textContent = '미업로드';
+    mineStatus.className = 'cmp-badge';
+    mineInfo.textContent = '';
+    mineDl.style.display = 'none';
+    mineClr.style.display = 'none';
+    mineMap.style.display = 'none';
+  }
+  // HQ
+  var hqStatus = document.getElementById('cmp-hq-status');
+  var hqInfo = document.getElementById('cmp-hq-info');
+  var hqMap = document.getElementById('cmp-hq-mapping');
+  var hqEdit = document.getElementById('cmp-hq-edit');
+  var hqClr = document.getElementById('cmp-hq-clear');
+  if (cmpHQ) {
+    hqStatus.textContent = cmpHQ.rows.length + '건 (' + cmpHQ.source + ')';
+    hqStatus.className = 'cmp-badge ' + (cmpHQ.source === 'pdf' ? 'warn' : 'ok');
+    hqInfo.textContent = '📁 ' + cmpHQ.fileName;
+    hqClr.style.display = '';
+    hqMap.style.display = '';
+    hqMap.innerHTML = renderMappingUI('hq', cmpHQ.headers, cmpHQ.mapping, false);
+    if (cmpHQ.source === 'pdf') {
+      hqEdit.style.display = '';
+      hqEdit.innerHTML = renderHQEditPanel();
+    } else {
+      hqEdit.style.display = 'none';
+    }
+  } else {
+    hqStatus.textContent = '미업로드';
+    hqStatus.className = 'cmp-badge';
+    hqInfo.textContent = '';
+    hqClr.style.display = 'none';
+    hqMap.style.display = 'none';
+    hqEdit.style.display = 'none';
+  }
+  // Run button
+  document.getElementById('cmp-run-btn').disabled = !(cmpMine && cmpHQ);
+  // Hide results if changed
+  if (!cmpResult) {
+    document.getElementById('cmp-results').style.display = 'none';
+  }
+  // Status text
+  var statusEl = document.getElementById('compare-status');
+  if (statusEl) {
+    var parts = [];
+    if (cmpMine) parts.push('내 원본 ' + cmpMine.rows.length);
+    if (cmpHQ) parts.push('본사 ' + cmpHQ.rows.length);
+    statusEl.textContent = parts.join(' / ');
+  }
+}
+
+function normalizePrice(v) {
+  return String(v == null ? '' : v).replace(/[,\s원₩$]/g, '').trim();
+}
+
+function runCompare() {
+  if (!cmpMine || !cmpHQ) { toast('두 파일을 모두 업로드하세요'); return; }
+  if (!cmpMine.mapping.code || !cmpHQ.mapping.code) {
+    toast('양쪽 모두 코드 컬럼 매핑이 필요합니다'); return;
+  }
+  if (!cmpKeys.length) { toast('비교 키를 1개 이상 선택하세요'); return; }
+  // Validate keys: all selected keys must be mapped on both sides
+  for (var i = 0; i < cmpKeys.length; i++) {
+    var k = cmpKeys[i];
+    if (!cmpMine.mapping[k] || !cmpHQ.mapping[k]) {
+      toast('키 컬럼 "' + k + '"을 양쪽 모두에 매핑하세요'); return;
+    }
+  }
+
+  function makeKey(row, mapping) {
+    return cmpKeys.map(function(k) {
+      var c = mapping[k];
+      var v = c ? String(row[c] || '').trim().toLowerCase() : '';
+      if (k === 'price') v = normalizePrice(v);
+      return v;
+    }).join('|');
+  }
+  function codeOf(row, mapping) {
+    return String(row[mapping.code] || '').trim().toLowerCase();
+  }
+
+  var mineMap = {}, mineByCode = {};
+  cmpMine.rows.forEach(function(r) {
+    var k = makeKey(r, cmpMine.mapping);
+    if (k.replace(/\|/g, '')) mineMap[k] = r;
+    var c = codeOf(r, cmpMine.mapping);
+    if (c) mineByCode[c] = r;
+  });
+  var hqByCode = {};
+  cmpHQ.rows.forEach(function(r) {
+    var c = codeOf(r, cmpHQ.mapping);
+    if (c) hqByCode[c] = r;
+  });
+
+  var added = [], discontinued = [], changedName = [], changedPrice = [];
+
+  cmpHQ.rows.forEach(function(hqRow) {
+    var hqCode = codeOf(hqRow, cmpHQ.mapping);
+    if (!hqCode) return;
+    var k = makeKey(hqRow, cmpHQ.mapping);
+    var matched = mineMap[k];
+    var diffs = {};
+    function diffField(f) {
+      var hC = cmpHQ.mapping[f], mC = cmpMine.mapping[f];
+      if (!hC || !mC) return;
+      var hv = String(hqRow[hC] || '').trim();
+      var mv = String((matched || mineByCode[hqCode] || {})[mC] || '').trim();
+      var hCmp = hv, mCmp = mv;
+      if (f === 'price') { hCmp = normalizePrice(hv); mCmp = normalizePrice(mv); }
+      if (hCmp !== mCmp && (hCmp || mCmp)) diffs[f] = { from: mv, to: hv };
+    }
+    if (matched) {
+      ['model', 'name', 'price', 'category'].forEach(diffField);
+      var hasNameDiff = diffs.model || diffs.name;
+      var hasPriceDiff = diffs.price || diffs.category;
+      if (hasNameDiff) changedName.push({ mine: matched, hq: hqRow, diffs: diffs });
+      if (hasPriceDiff) changedPrice.push({ mine: matched, hq: hqRow, diffs: diffs });
+    } else if (mineByCode[hqCode]) {
+      ['model', 'name', 'price', 'category'].forEach(diffField);
+      if (Object.keys(diffs).length) {
+        var hasNameDiff = diffs.model || diffs.name;
+        var hasPriceDiff = diffs.price || diffs.category;
+        if (hasNameDiff) changedName.push({ mine: mineByCode[hqCode], hq: hqRow, diffs: diffs });
+        if (hasPriceDiff) changedPrice.push({ mine: mineByCode[hqCode], hq: hqRow, diffs: diffs });
+      }
+    } else {
+      added.push({ hq: hqRow });
+    }
+  });
+
+  cmpMine.rows.forEach(function(mineRow) {
+    var c = codeOf(mineRow, cmpMine.mapping);
+    if (!c) return;
+    if (!hqByCode[c]) discontinued.push({ mine: mineRow });
+  });
+
+  cmpResult = {
+    added: added,
+    discontinued: discontinued,
+    changedName: changedName,
+    changedPrice: changedPrice,
+    activeTab: 'added'
+  };
+  // Default activeTab to first non-empty
+  var order = ['added', 'discontinued', 'changedName', 'changedPrice'];
+  for (var i = 0; i < order.length; i++) {
+    if (cmpResult[order[i]].length) { cmpResult.activeTab = order[i]; break; }
+  }
+  renderCompareResults();
+  var total = added.length + discontinued.length + changedName.length + changedPrice.length;
+  toast('비교 완료: 변경 ' + total + '건');
+}
+
+function setCompareTab(tab) {
+  if (!cmpResult) return;
+  cmpResult.activeTab = tab;
+  renderCompareResults();
+}
+
+function cmpToggleAll(checked) {
+  document.querySelectorAll('#cmp-detail-table input[type="checkbox"]').forEach(function(c) { c.checked = checked; });
+}
+
+function renderCompareResults() {
+  if (!cmpResult) return;
+  var el = document.getElementById('cmp-results');
+  el.style.display = '';
+  var tabs = [
+    { k: 'added', l: '🆕 신제품 추가', color: '#1D9E75' },
+    { k: 'discontinued', l: '🚫 단종 후보', color: '#CC2222' },
+    { k: 'changedName', l: '✏️ 모델/이름 변경', color: '#9B5C0E' },
+    { k: 'changedPrice', l: '💰 가격/카테고리 변경', color: '#185FA5' }
+  ];
+  var html = '<div class="section" style="margin:0">';
+  html += '<div class="section-header"><span>비교 결과</span></div>';
+  html += '<div class="section-body" style="padding:12px">';
+  html += '<div class="cmp-result-summary">';
+  tabs.forEach(function(t) {
+    html += '<div class="cmp-result-card' + (cmpResult.activeTab === t.k ? ' active' : '') + '" onclick="setCompareTab(\'' + t.k + '\')">';
+    html += '<div class="cnt" style="color:' + t.color + '">' + cmpResult[t.k].length + '</div>';
+    html += '<div class="lbl">' + t.l + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">';
+  html += '<button class="btn-action-sub" onclick="cmpToggleAll(true)">전체 선택</button>';
+  html += '<button class="btn-action-sub" onclick="cmpToggleAll(false)">전체 해제</button>';
+  html += '<button class="btn-primary" onclick="applyCompareSelected()" style="margin-left:auto">✓ 선택 항목 내 원본에 반영</button>';
+  html += '<button class="btn-action-sub" onclick="downloadCompareMine()">📥 수정된 원본 다운로드</button>';
+  html += '</div>';
+  html += '<div id="cmp-detail-wrap" style="max-height:500px;overflow:auto;border:1px solid #DDE1EB;border-radius:4px">';
+  html += renderCompareTable(cmpResult.activeTab);
+  html += '</div>';
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function downloadCompareMine() {
+  if (!cmpMine) { toast('업로드된 원본 없음'); return; }
+  if (!window.XLSX) { toast('SheetJS 로딩 중'); return; }
+  var aoa = [cmpMine.headers.slice()];
+  cmpMine.rows.forEach(function(r) {
+    aoa.push(cmpMine.headers.map(function(h) { return r[h] != null ? r[h] : ''; }));
+  });
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '단가표');
+  var base = (cmpMine.fileName || '내_원본').replace(/\.[^.]+$/, '');
+  XLSX.writeFile(wb, base + '_수정_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+function renderCompareTable(tab) {
+  var data = cmpResult[tab];
+  if (!data.length) return '<div style="padding:30px;text-align:center;color:#9BA3B2">변경사항 없음</div>';
+  var fields = ['code', 'model', 'name', 'price', 'category'];
+  var fieldLabels = { code: '코드', model: '모델', name: '제품명', price: '가격', category: '카테고리' };
+  var html = '<table class="cmp-result-table" id="cmp-detail-table"><thead><tr>';
+  html += '<th style="width:36px;text-align:center"><input type="checkbox" onchange="cmpToggleAll(this.checked)"></th>';
+
+  if (tab === 'added') {
+    fields.forEach(function(f) { html += '<th>' + fieldLabels[f] + ' (본사)</th>'; });
+  } else if (tab === 'discontinued') {
+    fields.forEach(function(f) { html += '<th>' + fieldLabels[f] + ' (내거)</th>'; });
+  } else {
+    html += '<th>코드</th>';
+    ['model', 'name', 'price', 'category'].forEach(function(f) {
+      html += '<th>' + fieldLabels[f] + ' 변경</th>';
+    });
+  }
+  html += '</tr></thead><tbody>';
+
+  data.forEach(function(item, idx) {
+    var rowClass = tab === 'added' ? 'row-new' : (tab === 'discontinued' ? 'row-disc' : 'row-changed');
+    html += '<tr class="' + rowClass + '">';
+    html += '<td style="text-align:center"><input type="checkbox" data-idx="' + idx + '" checked></td>';
+    if (tab === 'added') {
+      fields.forEach(function(f) {
+        var col = cmpHQ.mapping[f];
+        var val = col ? (item.hq[col] || '') : '';
+        html += '<td>' + cmpEsc(val) + '</td>';
+      });
+    } else if (tab === 'discontinued') {
+      fields.forEach(function(f) {
+        var col = cmpMine.mapping[f];
+        var val = col ? (item.mine[col] || '') : '';
+        html += '<td>' + cmpEsc(val) + '</td>';
+      });
+    } else {
+      var codeCol = cmpMine.mapping.code;
+      html += '<td>' + cmpEsc(item.mine[codeCol] || '') + '</td>';
+      ['model', 'name', 'price', 'category'].forEach(function(f) {
+        if (item.diffs[f]) {
+          html += '<td><span class="diff-old" style="color:#9BA3B2;text-decoration:line-through">' + cmpEsc(item.diffs[f].from) + '</span><br><span style="color:#1D6E47;font-weight:600">→ ' + cmpEsc(item.diffs[f].to) + '</span></td>';
+        } else {
+          html += '<td style="color:#DDE1EB">-</td>';
+        }
+      });
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function applyCompareSelected() {
+  if (!cmpResult) return;
+  var checked = document.querySelectorAll('#cmp-detail-table input[type="checkbox"][data-idx]:checked');
+  if (!checked.length) { toast('선택된 항목이 없습니다'); return; }
+  var tab = cmpResult.activeTab;
+  var indexes = Array.prototype.map.call(checked, function(c) { return parseInt(c.dataset.idx); });
+  var label = { added: '신규 추가', discontinued: '단종(삭제)', changedName: '모델/이름 변경', changedPrice: '가격/카테고리 변경' }[tab];
+  if (!confirm(checked.length + '건을 내 원본에 "' + label + '"으로 반영합니다. 진행할까요?')) return;
+
+  var applied = 0;
+  if (tab === 'added') {
+    indexes.forEach(function(i) {
+      var item = cmpResult.added[i];
+      var newRow = {};
+      cmpMine.headers.forEach(function(h) { newRow[h] = ''; });
+      ['code', 'model', 'name', 'price', 'category'].forEach(function(f) {
+        var hC = cmpHQ.mapping[f], mC = cmpMine.mapping[f];
+        if (hC && mC) newRow[mC] = item.hq[hC] || '';
+      });
+      cmpMine.rows.push(newRow);
+      applied++;
+    });
+  } else if (tab === 'discontinued') {
+    var toRemove = indexes.map(function(i) { return cmpResult.discontinued[i].mine; });
+    cmpMine.rows = cmpMine.rows.filter(function(r) { return toRemove.indexOf(r) < 0; });
+    applied = toRemove.length;
+  } else if (tab === 'changedName' || tab === 'changedPrice') {
+    indexes.forEach(function(i) {
+      var item = cmpResult[tab][i];
+      var idx = cmpMine.rows.indexOf(item.mine);
+      if (idx < 0) return;
+      Object.keys(item.diffs).forEach(function(f) {
+        var mC = cmpMine.mapping[f];
+        if (mC) cmpMine.rows[idx][mC] = item.diffs[f].to;
+      });
+      applied++;
+    });
+  }
+
+  saveCmpMine();
+  toast(applied + '건 반영 완료. 다시 비교 실행했습니다.');
+  runCompare();
 }
 
 init();

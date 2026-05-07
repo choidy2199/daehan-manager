@@ -20,6 +20,7 @@
       <button class="nav-tab active" onclick="switchTab('catalog')">단가표</button>
       <button class="nav-tab" onclick="switchTab('order')">발주</button>
       <button class="nav-tab" onclick="switchTab('setbun')">세트및분해</button>
+      <button class="nav-tab" onclick="switchTab('compare')">단가표 비교</button>
     </div>
     <div class="nav-divider"></div>
     <div class="nav-sector nav-sector-general">
@@ -691,6 +692,74 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============== TAB: 단가표 비교 =============== -->
+<div id="tab-compare" class="tab-content">
+  <div class="section">
+    <div class="section-header">
+      <span>단가표 비교 (본사 단가표 ↔ 내 원본)</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="compare-status" style="font-size:12px;font-weight:400;opacity:0.7"></span>
+        <button class="btn-action-sub" onclick="resetCompareAll()">🗑️ 전체 초기화</button>
+      </div>
+    </div>
+    <div class="section-body" style="padding:12px">
+
+      <!-- Step 1: 내 원본 엑셀 -->
+      <div class="cmp-step">
+        <div class="cmp-step-title">
+          <span class="cmp-step-num">1</span>
+          내 원본 엑셀
+          <span id="cmp-mine-status" class="cmp-badge"></span>
+        </div>
+        <div class="cmp-step-body">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn-action-sub" onclick="document.getElementById('cmp-mine-input').click()">📤 원본 엑셀 업로드</button>
+            <input type="file" id="cmp-mine-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadCompareMine(this)">
+            <button class="btn-action-sub" onclick="downloadCompareMine()" id="cmp-mine-download" style="display:none">📥 현재 원본 다운로드</button>
+            <button class="btn-action-sub" onclick="clearCompareMine()" id="cmp-mine-clear" style="display:none">🗑️ 원본 삭제</button>
+            <span style="font-size:12px;color:#5A6070" id="cmp-mine-info"></span>
+          </div>
+          <div id="cmp-mine-mapping" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+
+      <!-- Step 2: 본사 파일 -->
+      <div class="cmp-step">
+        <div class="cmp-step-title">
+          <span class="cmp-step-num">2</span>
+          본사 파일 (PDF 또는 Excel)
+          <span id="cmp-hq-status" class="cmp-badge"></span>
+        </div>
+        <div class="cmp-step-body">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn-action-sub" onclick="document.getElementById('cmp-hq-input').click()">📤 본사 파일 업로드</button>
+            <input type="file" id="cmp-hq-input" accept=".pdf,.xlsx,.xls,.csv" style="display:none" onchange="uploadCompareHQ(this)">
+            <button class="btn-action-sub" onclick="clearCompareHQ()" id="cmp-hq-clear" style="display:none">🗑️ 본사 삭제</button>
+            <span style="font-size:12px;color:#5A6070" id="cmp-hq-info"></span>
+          </div>
+          <div id="cmp-hq-mapping" style="display:none;margin-top:10px"></div>
+          <div id="cmp-hq-edit" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: 비교 실행 -->
+      <div class="cmp-step">
+        <div class="cmp-step-title">
+          <span class="cmp-step-num">3</span>
+          비교 실행
+        </div>
+        <div class="cmp-step-body">
+          <button class="btn-primary" onclick="runCompare()" id="cmp-run-btn" disabled>🔍 비교 실행</button>
+          <span style="font-size:12px;color:#5A6070;margin-left:8px">두 파일을 모두 업로드하면 활성화됩니다</span>
+        </div>
+      </div>
+
+      <!-- Step 4: 결과 -->
+      <div id="cmp-results" style="display:none;margin-top:16px"></div>
     </div>
   </div>
 </div>
