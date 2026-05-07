@@ -760,6 +760,17 @@
 
       <!-- Step 4: 결과 -->
       <div id="cmp-results" style="display:none;margin-top:16px"></div>
+
+      <!-- 변경 이력 -->
+      <div class="cmp-step" style="margin-top:16px">
+        <div class="cmp-step-title" style="cursor:pointer" onclick="toggleCmpHistory()">
+          <span class="cmp-step-num" style="background:#7F77DD">📜</span>
+          변경 이력
+          <span id="cmp-history-count" class="cmp-badge"></span>
+          <span id="cmp-history-toggle" style="margin-left:8px;font-size:11px;color:#5A6070">▼ 펼치기</span>
+        </div>
+        <div class="cmp-step-body" id="cmp-history-body" style="display:none"></div>
+      </div>
     </div>
   </div>
 </div>

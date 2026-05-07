@@ -5464,6 +5464,7 @@ function uploadClients(input) {
 // ======================== COMPARE TAB (단가표 비교) ========================
 var CMP_KEY_MINE = 'mw_cmp_mine';
 var CMP_KEY_KEYS = 'mw_cmp_keys';
+var CMP_KEY_HIST = 'mw_cmp_history';
 var cmpMine = null;
 var cmpHQ = null;
 var cmpKeys = ['code'];
@@ -5482,6 +5483,96 @@ function renderCompareTab() {
     if (k) cmpKeys = JSON.parse(k);
   } catch (e) {}
   refreshCompareUI();
+  renderCmpHistory();
+}
+
+function loadCmpHistory() {
+  try { return JSON.parse(localStorage.getItem(CMP_KEY_HIST)) || []; } catch (e) { return []; }
+}
+function saveCmpHistory(list) {
+  localStorage.setItem(CMP_KEY_HIST, JSON.stringify(list));
+}
+function appendCmpHistory(entry) {
+  var list = loadCmpHistory();
+  list.unshift(entry);
+  if (list.length > 200) list = list.slice(0, 200);
+  saveCmpHistory(list);
+}
+
+function toggleCmpHistory() {
+  var body = document.getElementById('cmp-history-body');
+  var toggle = document.getElementById('cmp-history-toggle');
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    toggle.textContent = '▲ 접기';
+    renderCmpHistory();
+  } else {
+    body.style.display = 'none';
+    toggle.textContent = '▼ 펼치기';
+  }
+}
+
+function renderCmpHistory() {
+  var list = loadCmpHistory();
+  var countEl = document.getElementById('cmp-history-count');
+  if (countEl) {
+    countEl.textContent = list.length + '건';
+    countEl.className = 'cmp-badge' + (list.length ? ' ok' : '');
+  }
+  var body = document.getElementById('cmp-history-body');
+  if (!body || body.style.display === 'none') return;
+  if (!list.length) {
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:#9BA3B2;font-size:12px">아직 적용된 변경 이력이 없습니다</div>';
+    return;
+  }
+  var typeLabels = { added: '🆕 신규', discontinued: '🚫 단종', changedName: '✏️ 이름', changedPrice: '💰 가격' };
+  var html = '<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn-action-sub" onclick="clearCmpHistory()">🗑️ 이력 전체 삭제</button></div>';
+  html += '<div style="max-height:400px;overflow:auto"><table class="cmp-result-table">';
+  html += '<thead><tr><th style="width:140px">시간</th><th style="width:80px">종류</th><th style="width:60px">건수</th><th>내용</th></tr></thead><tbody>';
+  list.forEach(function(e, idx) {
+    html += '<tr>';
+    html += '<td>' + cmpEsc(new Date(e.ts).toLocaleString()) + '</td>';
+    html += '<td>' + (typeLabels[e.type] || e.type) + '</td>';
+    html += '<td style="text-align:right">' + e.items.length + '</td>';
+    html += '<td><a style="cursor:pointer;color:#185FA5;text-decoration:underline;font-size:11px" onclick="toggleCmpHistoryItem(' + idx + ')">상세 보기/숨기기</a>';
+    html += '<div id="cmp-hist-detail-' + idx + '" style="display:none;margin-top:6px;font-size:11px;color:#5A6070"></div></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  body.innerHTML = html;
+}
+
+function toggleCmpHistoryItem(idx) {
+  var el = document.getElementById('cmp-hist-detail-' + idx);
+  if (!el) return;
+  if (el.style.display === 'none') {
+    var list = loadCmpHistory();
+    var e = list[idx];
+    if (!e) return;
+    var html = '<table style="width:100%;border-collapse:collapse"><thead><tr>';
+    var cols = e.type === 'added' ? ['code','model','name','price','category']
+             : e.type === 'discontinued' ? ['code','model','name','price','category']
+             : ['code','field','from','to'];
+    cols.forEach(function(c) { html += '<th style="background:#F4F6FA;padding:3px 6px;text-align:left;font-weight:600;font-size:10px">' + c + '</th>'; });
+    html += '</tr></thead><tbody>';
+    e.items.forEach(function(it) {
+      html += '<tr>';
+      cols.forEach(function(c) { html += '<td style="padding:3px 6px;border-top:1px solid #F0F2F7">' + cmpEsc(it[c] || '') + '</td>'; });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function clearCmpHistory() {
+  if (!confirm('변경 이력 전체를 삭제할까요?')) return;
+  localStorage.removeItem(CMP_KEY_HIST);
+  renderCmpHistory();
+  toast('이력 삭제');
 }
 
 function saveCmpMine() {
@@ -6005,12 +6096,45 @@ function renderCompareResults() {
   html += '<button class="btn-action-sub" onclick="cmpToggleAll(false)">전체 해제</button>';
   html += '<button class="btn-primary" onclick="applyCompareSelected()" style="margin-left:auto">✓ 선택 항목 내 원본에 반영</button>';
   html += '<button class="btn-action-sub" onclick="downloadCompareMine()">📥 수정된 원본 다운로드</button>';
+  html += '<button class="btn-action-sub" onclick="downloadCompareReport()">📊 비교 리포트 다운로드</button>';
   html += '</div>';
   html += '<div id="cmp-detail-wrap" style="max-height:500px;overflow:auto;border:1px solid #DDE1EB;border-radius:4px">';
   html += renderCompareTable(cmpResult.activeTab);
   html += '</div>';
   html += '</div></div>';
   el.innerHTML = html;
+}
+
+function downloadCompareReport() {
+  if (!cmpResult) { toast('비교 결과 없음'); return; }
+  if (!window.XLSX) { toast('SheetJS 로딩 중'); return; }
+  var wb = XLSX.utils.book_new();
+  var fields = ['code', 'model', 'name', 'price', 'category'];
+  function rowsForList(list, side) {
+    var out = [['코드', '모델', '제품명', '가격', '카테고리']];
+    list.forEach(function(item) {
+      var src = side === 'hq' ? item.hq : item.mine;
+      var map = side === 'hq' ? cmpHQ.mapping : cmpMine.mapping;
+      out.push(fields.map(function(f) { return map[f] ? (src[map[f]] || '') : ''; }));
+    });
+    return out;
+  }
+  function rowsForDiff(list) {
+    var out = [['코드', '필드', '변경 전 (내거)', '변경 후 (본사)']];
+    list.forEach(function(item) {
+      var codeCol = cmpMine.mapping.code;
+      var code = codeCol ? (item.mine[codeCol] || '') : '';
+      Object.keys(item.diffs).forEach(function(f) {
+        out.push([code, f, item.diffs[f].from, item.diffs[f].to]);
+      });
+    });
+    return out;
+  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsForList(cmpResult.added, 'hq')), '신제품(' + cmpResult.added.length + ')');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsForList(cmpResult.discontinued, 'mine')), '단종(' + cmpResult.discontinued.length + ')');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsForDiff(cmpResult.changedName)), '이름변경(' + cmpResult.changedName.length + ')');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsForDiff(cmpResult.changedPrice)), '가격카테고리변경(' + cmpResult.changedPrice.length + ')');
+  XLSX.writeFile(wb, '단가표비교리포트_' + new Date().toISOString().slice(0, 10) + '.xlsx');
 }
 
 function downloadCompareMine() {
@@ -6090,20 +6214,32 @@ function applyCompareSelected() {
   if (!confirm(checked.length + '건을 내 원본에 "' + label + '"으로 반영합니다. 진행할까요?')) return;
 
   var applied = 0;
+  var histItems = [];
   if (tab === 'added') {
     indexes.forEach(function(i) {
       var item = cmpResult.added[i];
       var newRow = {};
       cmpMine.headers.forEach(function(h) { newRow[h] = ''; });
+      var histItem = {};
       ['code', 'model', 'name', 'price', 'category'].forEach(function(f) {
         var hC = cmpHQ.mapping[f], mC = cmpMine.mapping[f];
         if (hC && mC) newRow[mC] = item.hq[hC] || '';
+        if (hC) histItem[f] = item.hq[hC] || '';
       });
       cmpMine.rows.push(newRow);
+      histItems.push(histItem);
       applied++;
     });
   } else if (tab === 'discontinued') {
     var toRemove = indexes.map(function(i) { return cmpResult.discontinued[i].mine; });
+    toRemove.forEach(function(r) {
+      var hi = {};
+      ['code', 'model', 'name', 'price', 'category'].forEach(function(f) {
+        var mC = cmpMine.mapping[f];
+        if (mC) hi[f] = r[mC] || '';
+      });
+      histItems.push(hi);
+    });
     cmpMine.rows = cmpMine.rows.filter(function(r) { return toRemove.indexOf(r) < 0; });
     applied = toRemove.length;
   } else if (tab === 'changedName' || tab === 'changedPrice') {
@@ -6111,17 +6247,23 @@ function applyCompareSelected() {
       var item = cmpResult[tab][i];
       var idx = cmpMine.rows.indexOf(item.mine);
       if (idx < 0) return;
+      var codeVal = cmpMine.mapping.code ? (item.mine[cmpMine.mapping.code] || '') : '';
       Object.keys(item.diffs).forEach(function(f) {
         var mC = cmpMine.mapping[f];
         if (mC) cmpMine.rows[idx][mC] = item.diffs[f].to;
+        histItems.push({ code: codeVal, field: f, from: item.diffs[f].from, to: item.diffs[f].to });
       });
       applied++;
     });
   }
 
   saveCmpMine();
+  if (histItems.length) {
+    appendCmpHistory({ ts: new Date().toISOString(), type: tab, items: histItems });
+  }
   toast(applied + '건 반영 완료. 다시 비교 실행했습니다.');
   runCompare();
+  renderCmpHistory();
 }
 
 init();
